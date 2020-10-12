@@ -1,0 +1,9 @@
+C:\Sandbox\MB\automation\lib\AutomationNodes\AutomationNodes\bin\Debug\netstandard2.0\AutomationNodes.deps.json
+C:\Sandbox\MB\automation\lib\AutomationNodes\AutomationNodes\bin\Debug\netstandard2.0\AutomationNodes.dll
+C:\Sandbox\MB\automation\lib\AutomationNodes\AutomationNodes\bin\Debug\netstandard2.0\AutomationNodes.pdb
+C:\Sandbox\MB\automation\lib\AutomationNodes\AutomationNodes\obj\Debug\netstandard2.0\AutomationNodes.AssemblyInfoInputs.cache
+C:\Sandbox\MB\automation\lib\AutomationNodes\AutomationNodes\obj\Debug\netstandard2.0\AutomationNodes.AssemblyInfo.cs
+C:\Sandbox\MB\automation\lib\AutomationNodes\AutomationNodes\obj\Debug\netstandard2.0\AutomationNodes.csproj.CoreCompileInputs.cache
+C:\Sandbox\MB\automation\lib\AutomationNodes\AutomationNodes\obj\Debug\netstandard2.0\AutomationNodes.dll
+C:\Sandbox\MB\automation\lib\AutomationNodes\AutomationNodes\obj\Debug\netstandard2.0\AutomationNodes.pdb
+C:\Sandbox\MB\automation\lib\AutomationNodes\AutomationNodes\obj\Debug\netstandard2.0\AutomationNodes.csprojAssemblyReference.cache
