@@ -130,4 +130,5 @@ $RECYCLE.BIN/
 
 _NCrunch*
 
-**/bin**
+bin/
+node_modules/
