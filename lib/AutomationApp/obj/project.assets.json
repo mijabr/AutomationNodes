@@ -11,19 +11,38 @@
         "runtime": {
           "bin/placeholder/AutomationNodes.dll": {}
         }
+      },
+      "AutomationPlayground/1.0.0": {
+        "type": "project",
+        "framework": ".NETStandard,Version=v2.0",
+        "dependencies": {
+          "AutomationNodes": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/AutomationPlayground.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/AutomationPlayground.dll": {}
+        }
       }
     }
   },
   "libraries": {
     "AutomationNodes/1.0.0": {
       "type": "project",
-      "path": "../AutomationNodes/AutomationNodes/AutomationNodes.csproj",
-      "msbuildProject": "../AutomationNodes/AutomationNodes/AutomationNodes.csproj"
+      "path": "../AutomationNodes/AutomationNodes.csproj",
+      "msbuildProject": "../AutomationNodes/AutomationNodes.csproj"
+    },
+    "AutomationPlayground/1.0.0": {
+      "type": "project",
+      "path": "../AutomationPlayground/AutomationPlayground.csproj",
+      "msbuildProject": "../AutomationPlayground/AutomationPlayground.csproj"
     }
   },
   "projectFileDependencyGroups": {
     ".NETCoreApp,Version=v3.1": [
-      "AutomationNodes >= 1.0.0"
+      "AutomationNodes >= 1.0.0",
+      "AutomationPlayground >= 1.0.0"
     ]
   },
   "packageFolders": {
@@ -52,8 +71,11 @@
       "frameworks": {
         "netcoreapp3.1": {
           "projectReferences": {
-            "C:\\Sandbox\\MB\\automation\\lib\\AutomationNodes\\AutomationNodes\\AutomationNodes.csproj": {
-              "projectPath": "C:\\Sandbox\\MB\\automation\\lib\\AutomationNodes\\AutomationNodes\\AutomationNodes.csproj"
+            "C:\\Sandbox\\MB\\automation\\lib\\AutomationNodes\\AutomationNodes.csproj": {
+              "projectPath": "C:\\Sandbox\\MB\\automation\\lib\\AutomationNodes\\AutomationNodes.csproj"
+            },
+            "C:\\Sandbox\\MB\\automation\\lib\\AutomationPlayground\\AutomationPlayground.csproj": {
+              "projectPath": "C:\\Sandbox\\MB\\automation\\lib\\AutomationPlayground\\AutomationPlayground.csproj"
             }
           }
         }
@@ -84,7 +106,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.402\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.403\\RuntimeIdentifierGraph.json"
       }
     }
   }

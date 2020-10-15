@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
-namespace AutomationNodes
+namespace AutomationNodes.Core
 {
     public class WorldTime
     {

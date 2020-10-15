@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AutomationNodes
+namespace AutomationNodes.Core
 {
     public class WorldCatalogue
     {
@@ -55,6 +55,19 @@ namespace AutomationNodes
             }
         }
 
+        internal async Task MoveNode(World world, AutomationBase node)
+        {
+            await automationHubContext.Send(world.ConnectionId, node);
+
+            AddFutureEvent(new TemporalEvent
+            {
+                EventName = "node-arrival",
+                TriggerAt = worldTime.Time.Elapsed + TimeSpan.FromMilliseconds(node.HeadingEta),
+                RegardingNode = node.Id,
+                RegardingLocation = node.Heading
+            });
+        }
+
         private readonly List<TemporalEvent> events = new List<TemporalEvent>();
 
         public void AddFutureEvent(TemporalEvent temporalEvent)
@@ -81,7 +94,6 @@ namespace AutomationNodes
         private readonly WorldCatalogue worldCatalogue;
         private readonly WorldTime worldTime;
         private readonly IAutomationHubContext automationHubContext;
-        private readonly string connectionId;
 
         public World(
             WorldCatalogue worldCatalogue,
@@ -92,10 +104,12 @@ namespace AutomationNodes
             this.worldCatalogue = worldCatalogue;
             this.worldTime = worldTime;
             this.automationHubContext = automationHubContext;
-            this.connectionId = connectionId;
+            ConnectionId = connectionId;
         }
 
-        public T CreateNode<T>() where T: AutomationBase
+        public string ConnectionId { get; }
+
+        public T CreateNode<T>() where T : AutomationBase
         {
             var t = Activator.CreateInstance(typeof(T), new object[] { worldCatalogue, this });
 
@@ -106,22 +120,6 @@ namespace AutomationNodes
             node.OnCreated();
 
             return (T)node;
-        }
-
-        public async Task MoveNode(AutomationBase node, Point location)
-        {
-            node.Heading = location;
-            node.HeadingEta = node.Location.DistanceTo(node.Heading) / node.Speed * 1000;
-
-            await automationHubContext.Send(connectionId, node);
-
-            worldCatalogue.AddFutureEvent(new TemporalEvent
-            {
-                EventName = "node-arrival",
-                TriggerAt = worldTime.Time.Elapsed + TimeSpan.FromMilliseconds(node.HeadingEta),
-                RegardingNode = node.Id,
-                RegardingLocation = node.Heading
-            });
         }
 
         public void OnCreated()

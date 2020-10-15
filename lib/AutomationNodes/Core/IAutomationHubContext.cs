@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace AutomationNodes
+namespace AutomationNodes.Core
 {
     public interface IAutomationHubContext
     {

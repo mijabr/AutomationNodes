@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using AutomationNodes.Core;
+using System.Threading.Tasks;
 
 namespace AutomationNodes
 {
@@ -10,27 +11,34 @@ namespace AutomationNodes
 
         public override string Image => "ship-0001.svg";
 
-        private Point[] waypoints = new[]
+        private Point[] waypoints;
+        public Point[] Waypoints
         {
-            new Point(100, 100),
-            new Point(200, 100),
-            new Point(200, 200),
-            new Point(100, 200)
-        };
+            get { return waypoints; }
+            set { waypoints = value; Start(); }
+        }
 
-        private int waypointIndex = 0;
+        private int waypointIndex;
 
         public override void OnCreated()
         {
             Speed = 250;
-            Location = waypoints[0];
             worldCatalogue.SubscribeToNode(this, Id);
-            Next();
         }
 
         public override void OnEvent(TemporalEvent t)
         {
             Next();
+        }
+
+        private void Start()
+        {
+            waypointIndex = 0;
+            if (waypoints?.Length > 0)
+            {
+                Location = waypoints[0];
+                Next();
+            }
         }
 
         private void Next()
@@ -41,7 +49,7 @@ namespace AutomationNodes
                 waypointIndex = 0;
             }
 
-            Task.Run(() => world.MoveNode(this, waypoints[waypointIndex]));
+            MoveTo(waypoints[waypointIndex]);
         }
     }
 }
