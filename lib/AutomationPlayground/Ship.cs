@@ -1,21 +1,48 @@
 ﻿using AutomationNodes.Core;
-using System.Threading.Tasks;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace AutomationNodes
 {
-    public class Ship : AutomationBase
+    public class ShipImage : AutomationBase
     {
-        public Ship(WorldCatalogue worldCatalogue, World world) : base(worldCatalogue, world)
+        public ShipImage(WorldCatalogue worldCatalogue, WorldBase world) : base(worldCatalogue, world)
         {
+            Image = "ship-0001.svg";
         }
 
-        public override string Image => "ship-0001.svg";
+        public override string Type => "Img";
+    }
 
-        private Point[] waypoints;
-        public Point[] Waypoints
+    public class Ship : AutomationBase
+    {
+        private ShipImage shipImage;
+
+        public Ship(WorldCatalogue worldCatalogue, WorldBase world) : base(worldCatalogue, world)
         {
-            get { return waypoints; }
-            set { waypoints = value; Start(); }
+            shipImage = new ShipImage(worldCatalogue, world);
+            Children.Add(shipImage);
+        }
+
+        public override string Type => "Div";
+
+        public List<Point> Waypoints { get; } = new List<Point>();
+
+        public Ship FlyTo(int x, int y)
+        {
+            return FlyTo(new Point(x, y));
+        }
+
+        public Ship FlyTo(Point point)
+        {
+            Waypoints.Add(point);
+            return this;
+        }
+
+        public Ship Fly(int x, int y)
+        {
+            return FlyTo(new Point(Waypoints.Last().X + x, Waypoints.Last().Y + y));
         }
 
         private int waypointIndex;
@@ -31,25 +58,26 @@ namespace AutomationNodes
             Next();
         }
 
-        private void Start()
+        public void Start()
         {
             waypointIndex = 0;
-            if (waypoints?.Length > 0)
+            if (Waypoints?.Count > 0)
             {
-                Location = waypoints[0];
+                Location = Waypoints[0];
                 Next();
             }
         }
 
         private void Next()
         {
+            var lastWaypoint = Waypoints[waypointIndex];
             waypointIndex++;
-            if (waypointIndex >= waypoints.Length)
+            if (waypointIndex >= Waypoints.Count)
             {
                 waypointIndex = 0;
             }
-
-            MoveTo(waypoints[waypointIndex]);
+            shipImage.Rotation = lastWaypoint.DirectionTo(Waypoints[waypointIndex]);
+            MoveTo(Waypoints[waypointIndex]);
         }
     }
 }

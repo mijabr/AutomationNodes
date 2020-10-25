@@ -1,5 +1,6 @@
 ﻿using AutomationNodes;
 using AutomationNodes.Core;
+using AutomationPlayground;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Threading.Tasks;
@@ -24,14 +25,7 @@ namespace AutomationApp.Hubs
         {
             await base.OnConnectedAsync();
 
-            var world = worldCatalogue.CreateNewWorld(Context.ConnectionId);
-            world.CreateNode<Ship>().Waypoints = new[]
-            {
-                new Point(100, 100),
-                new Point(200, 100),
-                new Point(200, 200),
-                new Point(100, 200)
-            };
+            var world = worldCatalogue.CreateWorld<RandomShipWorld>(Context.ConnectionId);
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)

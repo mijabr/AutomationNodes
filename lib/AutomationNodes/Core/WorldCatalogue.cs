@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,44 +20,54 @@ namespace AutomationNodes.Core
             this.automationHubContext = automationHubContext;
         }
 
-        public List<World> Worlds { get; } = new List<World>();
+        public List<WorldBase> Worlds { get; } = new List<WorldBase>();
 
         public Dictionary<Guid, AutomationBase> Nodes { get; } = new Dictionary<Guid, AutomationBase>();
 
-        public World CreateNewWorld(string connectionId)
+        public T CreateWorld<T>(string connectionId) where T : WorldBase
         {
-            var world = new World(this, worldTime, automationHubContext, connectionId);
+            var t = Activator.CreateInstance(typeof(T), new object[] { this, worldTime, automationHubContext, connectionId });
+
+            if (!(t is WorldBase world)) throw new Exception("Worlds must be based on WorldBase class");
+
             Worlds.Add(world);
 
-            return world;
+            world.OnCreated();
+
+            return (T)world;
         }
 
         public async Task StartTemporalEventQueue(CancellationToken token)
         {
+            var stopwatch = Stopwatch.StartNew();
             while (!token.IsCancellationRequested)
             {
-                var processedEvents = new List<TemporalEvent>();
-                var now = worldTime.Time.Elapsed;
-                events.ForEach(t =>
-                {
-                    if (now >= t.TriggerAt)
-                    {
-                        if (subscriptions.TryGetValue(t.RegardingNode, out var regardingNodeSubscriptions))
-                        {
-                            regardingNodeSubscriptions.ForEach(handler => handler.OnEvent(t));
-                        }
+                var startCount = events.Count;
 
-                        processedEvents.Add(t);
+                List<TemporalEvent> processedEvents;
+                lock (syncObj)
+                {
+                    var now = worldTime.Time.Elapsed;
+                    processedEvents = events.Where(e => now >= e.TriggerAt).ToList();
+                    processedEvents.ForEach(t => events.Remove(t));
+                }
+
+                processedEvents.ForEach(e =>
+                {
+                    if (subscriptions.TryGetValue(e.RegardingNode, out var regardingNodeSubscriptions))
+                    {
+                        regardingNodeSubscriptions.ForEach(handler => handler.OnEvent(e));
                     }
                 });
 
-                processedEvents.ForEach(t => events.Remove(t));
-
+                var endCount = events.Count;
+                //Console.WriteLine($"Processed in {startCount-endCount}/{startCount} {stopwatch.Elapsed}");
+                stopwatch.Restart();
                 await Task.Delay(20);
             }
         }
 
-        internal async Task MoveNode(World world, AutomationBase node)
+        internal async Task MoveNode(WorldBase world, AutomationBase node)
         {
             await automationHubContext.Send(world.ConnectionId, node);
 
@@ -69,10 +81,14 @@ namespace AutomationNodes.Core
         }
 
         private readonly List<TemporalEvent> events = new List<TemporalEvent>();
+        private static object syncObj = new object();
 
         public void AddFutureEvent(TemporalEvent temporalEvent)
         {
-            events.Add(temporalEvent);
+            lock (syncObj)
+            {
+                events.Add(temporalEvent);
+            }
         }
 
         private readonly Dictionary<Guid, List<ITemporalEventHandler>> subscriptions = new Dictionary<Guid, List<ITemporalEventHandler>>();
@@ -89,13 +105,13 @@ namespace AutomationNodes.Core
         }
     }
 
-    public class World : ITemporalEventHandler
+    public class WorldBase : ITemporalEventHandler
     {
         private readonly WorldCatalogue worldCatalogue;
         private readonly WorldTime worldTime;
         private readonly IAutomationHubContext automationHubContext;
 
-        public World(
+        public WorldBase(
             WorldCatalogue worldCatalogue,
             WorldTime worldTime,
             IAutomationHubContext automationHubContext,
@@ -122,7 +138,7 @@ namespace AutomationNodes.Core
             return (T)node;
         }
 
-        public void OnCreated()
+        public virtual void OnCreated()
         {
         }
 
@@ -145,7 +161,11 @@ namespace AutomationNodes.Core
 
     public interface ITemporalEventHandler
     {
-        void OnCreated();
         void OnEvent(TemporalEvent t);
+    }
+
+    public interface ICreatable
+    {
+        void OnCreated();
     }
 }
