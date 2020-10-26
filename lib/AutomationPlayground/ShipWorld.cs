@@ -5,7 +5,7 @@ namespace AutomationPlayground
 {
     public class ShipWorld : WorldBase
     {
-        public ShipWorld(WorldCatalogue worldCatalogue, WorldTime worldTime, IAutomationHubContext automationHubContext, string connectionId) : base(worldCatalogue, worldTime, automationHubContext, connectionId)
+        public ShipWorld(WorldCatalogue worldCatalogue, WorldTime worldTime, string connectionId) : base(worldCatalogue, worldTime, connectionId)
         {
         }
 

@@ -6,13 +6,13 @@ namespace AutomationPlayground
 {
     public class RandomShipWorld : WorldBase
     {
-        public RandomShipWorld(WorldCatalogue worldCatalogue, WorldTime worldTime, IAutomationHubContext automationHubContext, string connectionId) : base(worldCatalogue, worldTime, automationHubContext, connectionId)
+        public RandomShipWorld(WorldCatalogue worldCatalogue, WorldTime worldTime, string connectionId) : base(worldCatalogue, worldTime, connectionId)
         {
         }
 
         public override void OnCreated()
         {
-            for (var n = 0; n < 300; n++)
+            for (var n = 0; n < 600; n++)
             {
                 AddShip();
             }

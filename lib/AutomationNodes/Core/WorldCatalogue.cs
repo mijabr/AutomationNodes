@@ -10,14 +10,14 @@ namespace AutomationNodes.Core
     public class WorldCatalogue
     {
         private readonly WorldTime worldTime;
-        private readonly IAutomationHubContext automationHubContext;
+        private readonly IHubManager hubManager;
 
         public WorldCatalogue(
             WorldTime worldTime,
-            IAutomationHubContext automationHubContext)
+            IHubManager hubManager)
         {
             this.worldTime = worldTime;
-            this.automationHubContext = automationHubContext;
+            this.hubManager = hubManager;
         }
 
         public List<WorldBase> Worlds { get; } = new List<WorldBase>();
@@ -26,7 +26,7 @@ namespace AutomationNodes.Core
 
         public T CreateWorld<T>(string connectionId) where T : WorldBase
         {
-            var t = Activator.CreateInstance(typeof(T), new object[] { this, worldTime, automationHubContext, connectionId });
+            var t = Activator.CreateInstance(typeof(T), new object[] { this, worldTime, connectionId });
 
             if (!(t is WorldBase world)) throw new Exception("Worlds must be based on WorldBase class");
 
@@ -67,9 +67,9 @@ namespace AutomationNodes.Core
             }
         }
 
-        internal async Task MoveNode(WorldBase world, AutomationBase node)
+        internal void MoveNode(WorldBase world, AutomationBase node)
         {
-            await automationHubContext.Send(world.ConnectionId, node);
+            hubManager.Send(world.ConnectionId, node);
 
             AddFutureEvent(new TemporalEvent
             {
@@ -109,17 +109,14 @@ namespace AutomationNodes.Core
     {
         private readonly WorldCatalogue worldCatalogue;
         private readonly WorldTime worldTime;
-        private readonly IAutomationHubContext automationHubContext;
 
         public WorldBase(
             WorldCatalogue worldCatalogue,
             WorldTime worldTime,
-            IAutomationHubContext automationHubContext,
             string connectionId)
         {
             this.worldCatalogue = worldCatalogue;
             this.worldTime = worldTime;
-            this.automationHubContext = automationHubContext;
             ConnectionId = connectionId;
         }
 

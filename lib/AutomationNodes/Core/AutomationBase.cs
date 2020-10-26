@@ -79,14 +79,9 @@ namespace AutomationNodes.Core
 
         public void MoveTo(Point location)
         {
-            Task.Run(() => MoveToAsync(location));
-        }
-
-        public async Task MoveToAsync(Point location)
-        {
             Heading = location;
             HeadingEta = Location.DistanceTo(Heading) / Speed * 1000;
-            await worldCatalogue.MoveNode(world, this);
+            worldCatalogue.MoveNode(world, this);
         }
 
         public virtual void OnCreated()

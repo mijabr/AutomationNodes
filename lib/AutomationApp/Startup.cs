@@ -19,6 +19,7 @@ namespace AutomationApp
             services.AddSingleton<WorldTime>();
             services.AddSingleton<WorldCatalogue>();
             services.AddSingleton(typeof(IAutomationHubContext), typeof(AutomationHubContext));
+            services.AddSingleton(typeof(IHubManager), typeof(HubManager));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
