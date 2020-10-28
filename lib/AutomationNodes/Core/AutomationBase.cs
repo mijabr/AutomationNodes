@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace AutomationNodes.Core
@@ -91,5 +92,31 @@ namespace AutomationNodes.Core
         public virtual void OnEvent(TemporalEvent t)
         {
         }
+
+        public AutomationDto Dto => new AutomationDto
+        {
+            Id = Id,
+            Image = Image,
+            Type = Type,
+            Location = Location,
+            Heading = Heading,
+            HeadingEta = HeadingEta,
+            Rotation = Rotation,
+            Children = Children.Select(n => n.Dto)
+        };
+
+    }
+
+    public class AutomationDto
+    {
+        public Guid Id { get; set; }
+        public string Image { get; set; }
+        public string Type { get; set; }
+        public Point Location { get; set; }
+        public Point Heading { get; set; }
+        public double HeadingEta { get; set; }
+        public double Rotation { get; set; }
+        public IEnumerable<AutomationDto> Children { get; set; }
+
     }
 }

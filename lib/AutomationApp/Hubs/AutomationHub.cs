@@ -28,7 +28,7 @@ namespace AutomationApp.Hubs
         {
             await base.OnConnectedAsync();
 
-            var world = worldCatalogue.CreateWorld<RandomShipWorld>(Context.ConnectionId);
+            worldCatalogue.CreateWorld<RandomShipWorld>(Context.ConnectionId);
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)
@@ -46,7 +46,7 @@ namespace AutomationApp.Hubs
             this.hubContext = hubContext;
         }
 
-        public async Task Send(string connectionId, List<AutomationBase> nodes)
+        public async Task Send(string connectionId, List<AutomationDto> nodes)
         {
             await hubContext.Clients.Client(connectionId).SendAsync("AutomationMessage", nodes);
         }
@@ -63,15 +63,18 @@ namespace AutomationApp.Hubs
 
         public void Send(string connectionId, AutomationBase node)
         {
-            if (clientsMessages.TryGetValue(connectionId, out var clientMessages))
+            lock (lockObj)
             {
-                clientMessages.Add(node);
-            }
-            else
-            {
-                var newClientMessages = new List<AutomationBase>();
-                clientsMessages.Add(connectionId, newClientMessages);
-                newClientMessages.Add(node);
+                if (clientsMessages.TryGetValue(connectionId, out var clientMessages))
+                {
+                    clientMessages.Add(node);
+                }
+                else
+                {
+                    var newClientMessages = new List<AutomationBase>();
+                    clientsMessages.Add(connectionId, newClientMessages);
+                    newClientMessages.Add(node);
+                }
             }
         }
 
@@ -93,10 +96,10 @@ namespace AutomationApp.Hubs
 
                 foreach(var clientMessages in clientsMessagesToSend)
                 {
-                    await automationHubContext.Send(clientMessages.Key, clientMessages.Value);
+                    await automationHubContext.Send(clientMessages.Key, clientMessages.Value.Select(n => n.Dto).ToList());
                 }
 
-                await Task.Delay(50);
+                await Task.Delay(10);
             }
         }
 
