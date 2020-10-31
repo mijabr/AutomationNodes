@@ -132,3 +132,5 @@ _NCrunch*
 
 bin/
 node_modules/
+
+*.dtbcache.v2

@@ -26,7 +26,7 @@ namespace AutomationNodes.Core
 
         public T CreateWorld<T>(string connectionId) where T : WorldBase
         {
-            var t = Activator.CreateInstance(typeof(T), new object[] { this, worldTime, connectionId });
+            var t = Activator.CreateInstance(typeof(T), new object[] { this, worldTime, connectionId, hubManager });
 
             if (!(t is WorldBase world)) throw new Exception("Worlds must be based on WorldBase class");
 
@@ -67,19 +67,6 @@ namespace AutomationNodes.Core
             }
         }
 
-        internal void MoveNode(WorldBase world, AutomationBase node)
-        {
-            hubManager.Send(world.ConnectionId, node);
-
-            AddFutureEvent(new TemporalEvent
-            {
-                EventName = "node-arrival",
-                TriggerAt = worldTime.Time.Elapsed + TimeSpan.FromMilliseconds(node.HeadingEta),
-                RegardingNode = node.Id,
-                RegardingLocation = node.Heading
-            });
-        }
-
         private readonly List<TemporalEvent> events = new List<TemporalEvent>();
         private static object syncObj = new object();
 
@@ -102,49 +89,6 @@ namespace AutomationNodes.Core
             }
 
             regardingNodeSubscriptions.Add(temporalEventHandler);
-        }
-    }
-
-    public class WorldBase : ITemporalEventHandler
-    {
-        private readonly WorldCatalogue worldCatalogue;
-        private readonly WorldTime worldTime;
-
-        public WorldBase(
-            WorldCatalogue worldCatalogue,
-            WorldTime worldTime,
-            string connectionId)
-        {
-            this.worldCatalogue = worldCatalogue;
-            this.worldTime = worldTime;
-            ConnectionId = connectionId;
-        }
-
-        public string ConnectionId { get; }
-
-        public T CreateNode<T>() where T : AutomationBase
-        {
-            var t = Activator.CreateInstance(typeof(T), new object[] { worldCatalogue, this });
-
-            if (!(t is AutomationBase node)) throw new Exception("Node must be based on AutomationBase class");
-
-            worldCatalogue.Nodes.Add(node.Id, node);
-            worldCatalogue.SubscribeToNode(this, node.Id);
-            node.OnCreated();
-
-            return (T)node;
-        }
-
-        public virtual void OnCreated()
-        {
-        }
-
-        public void OnEvent(TemporalEvent t)
-        {
-            if (worldCatalogue.Nodes.TryGetValue(t.RegardingNode, out var node))
-            {
-                node.Location = t.RegardingLocation;
-            }
         }
     }
 

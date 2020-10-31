@@ -1,31 +1,32 @@
 ﻿using AutomationNodes.Core;
+using AutomationNodes.Nodes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace AutomationNodes
+namespace AutomationPlayground.Nodes
 {
-    public class ShipImage : AutomationBase
+    public class ShipImage : ImageNode
     {
-        public ShipImage(WorldCatalogue worldCatalogue, WorldBase world) : base(worldCatalogue, world)
+        public ShipImage(WorldCatalogue worldCatalogue, WorldBase world) : base(worldCatalogue, world, "ship-0001.svg")
         {
-            Image = "ship-0001.svg";
         }
-
-        public override string Type => "Img";
     }
 
-    public class Ship : AutomationBase
+    public class Ship : DivNode
     {
         private ShipImage shipImage;
 
         public Ship(WorldCatalogue worldCatalogue, WorldBase world) : base(worldCatalogue, world)
         {
-            shipImage = new ShipImage(worldCatalogue, world);
-            Children.Add(shipImage);
         }
 
-        public override string Type => "Div";
+        public override void OnCreated()
+        {
+            shipImage = CreateNode<ShipImage>();
+            Speed = 250;
+            worldCatalogue.SubscribeToNode(this, Id);
+        }
 
         public List<Point> Waypoints { get; } = new List<Point>();
 
@@ -46,12 +47,6 @@ namespace AutomationNodes
         }
 
         private int waypointIndex;
-
-        public override void OnCreated()
-        {
-            Speed = 250;
-            worldCatalogue.SubscribeToNode(this, Id);
-        }
 
         public override void OnEvent(TemporalEvent t)
         {
@@ -78,6 +73,7 @@ namespace AutomationNodes
             }
             shipImage.Rotation = lastWaypoint.DirectionTo(Waypoints[waypointIndex]);
             MoveTo(Waypoints[waypointIndex]);
+            world.RotateNode(shipImage);
         }
     }
 }

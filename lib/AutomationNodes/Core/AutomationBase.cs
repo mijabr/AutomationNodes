@@ -71,18 +71,31 @@ namespace AutomationNodes.Core
         public abstract string Type { get; }
         public Point Location { get; set; } = new Point();
         public Point Heading { get; private set; } = new Point();
-        public double HeadingEta { get; private set; }
+        public TimeSpan HeadingEta { get; private set; }
         public double Speed { get; set; } = 15;
         public double Rotation { get; set; }
+        public string InnerHtml { get; set; }
 
         public AutomationBase Parent { get; set; }
-        public List<AutomationBase> Children { get; } = new List<AutomationBase>();
 
-        public void MoveTo(Point location)
+        public void SetLocation(Point location)
+        {
+            Location = location;
+            Heading = location;
+            HeadingEta = TimeSpan.Zero;
+            world.MoveNode(this);
+        }
+
+        public void MoveTo(Point location, TimeSpan? time = null)
         {
             Heading = location;
-            HeadingEta = Location.DistanceTo(Heading) / Speed * 1000;
-            worldCatalogue.MoveNode(world, this);
+            HeadingEta = time ?? TimeSpan.FromMilliseconds(Location.DistanceTo(Heading) / Speed * 1000);
+            world.MoveNode(this);
+        }
+
+        public T CreateNode<T>() where T : AutomationBase
+        {
+            return world.CreateChildNode<T>(this);
         }
 
         public virtual void OnCreated()
@@ -93,30 +106,43 @@ namespace AutomationNodes.Core
         {
         }
 
-        public AutomationDto Dto => new AutomationDto
+        public virtual AutomationMessage CreateMessage() => new AutomationMessage
         {
+            Message = "Create",
             Id = Id,
-            Image = Image,
             Type = Type,
-            Location = Location,
-            Heading = Heading,
-            HeadingEta = HeadingEta,
-            Rotation = Rotation,
-            Children = Children.Select(n => n.Dto)
+            ParentId = Parent?.Id
         };
 
+        public virtual AutomationMessage MoveMessage() => new AutomationMessage
+        {
+            Message = "Move",
+            Id = Id,
+            Location = Location,
+            Heading = Heading,
+            HeadingEta = HeadingEta.TotalMilliseconds
+        };
+
+        public virtual AutomationMessage RotateMessage() => new AutomationMessage
+        {
+            Message = "Rotate",
+            Id = Id,
+            Rotation = Rotation
+        };
     }
 
-    public class AutomationDto
+    public class AutomationMessage
     {
+        public string Message { get; set; }
         public Guid Id { get; set; }
+        public Guid? ParentId { get; set; }
         public string Image { get; set; }
         public string Type { get; set; }
         public Point Location { get; set; }
         public Point Heading { get; set; }
         public double HeadingEta { get; set; }
         public double Rotation { get; set; }
-        public IEnumerable<AutomationDto> Children { get; set; }
-
+        public string InnerHtml { get; set; }
+        public IEnumerable<AutomationMessage> Children { get; set; }
     }
 }

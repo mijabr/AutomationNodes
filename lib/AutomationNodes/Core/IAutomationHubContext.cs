@@ -5,11 +5,11 @@ namespace AutomationNodes.Core
 {
     public interface IAutomationHubContext
     {
-        Task Send(string connectionId, List<AutomationDto> nodes);
+        Task Send(string connectionId, List<AutomationMessage> messages);
     }
 
     public interface IHubManager
     {
-        void Send(string connectionId, AutomationBase node);
+        void Send(string connectionId, AutomationMessage message);
     }
 }

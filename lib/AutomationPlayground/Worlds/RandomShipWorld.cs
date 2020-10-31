@@ -1,17 +1,19 @@
-﻿using AutomationNodes;
-using AutomationNodes.Core;
+﻿using AutomationNodes.Core;
+using AutomationPlayground.Nodes;
 using System;
 
-namespace AutomationPlayground
+namespace AutomationPlayground.Worlds
 {
     public class RandomShipWorld : WorldBase
     {
-        public RandomShipWorld(WorldCatalogue worldCatalogue, WorldTime worldTime, string connectionId) : base(worldCatalogue, worldTime, connectionId)
+        public RandomShipWorld(WorldCatalogue worldCatalogue, WorldTime worldTime, string connectionId, IHubManager hubManager) : base(worldCatalogue, worldTime, connectionId, hubManager)
         {
         }
 
         public override void OnCreated()
         {
+            base.OnCreated();
+
             for (var n = 0; n < 5; n++)
             {
                 AddShip();

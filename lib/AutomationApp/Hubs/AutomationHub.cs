@@ -1,6 +1,6 @@
 ﻿using AutomationNodes;
 using AutomationNodes.Core;
-using AutomationPlayground;
+using AutomationPlayground.Worlds;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
@@ -28,7 +28,9 @@ namespace AutomationApp.Hubs
         {
             await base.OnConnectedAsync();
 
+            //worldCatalogue.CreateWorld<ShipWorld>(Context.ConnectionId);
             worldCatalogue.CreateWorld<RandomShipWorld>(Context.ConnectionId);
+            //worldCatalogue.CreateWorld<LogoWorld>(Context.ConnectionId);
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)
@@ -46,9 +48,9 @@ namespace AutomationApp.Hubs
             this.hubContext = hubContext;
         }
 
-        public async Task Send(string connectionId, List<AutomationDto> nodes)
+        public async Task Send(string connectionId, List<AutomationMessage> messages)
         {
-            await hubContext.Clients.Client(connectionId).SendAsync("AutomationMessage", nodes);
+            await hubContext.Clients.Client(connectionId).SendAsync("AutomationMessage", messages);
         }
     }
 
@@ -61,19 +63,19 @@ namespace AutomationApp.Hubs
             this.automationHubContext = automationHubContext;
         }
 
-        public void Send(string connectionId, AutomationBase node)
+        public void Send(string connectionId, AutomationMessage message)
         {
             lock (lockObj)
             {
                 if (clientsMessages.TryGetValue(connectionId, out var clientMessages))
                 {
-                    clientMessages.Add(node);
+                    clientMessages.Add(message);
                 }
                 else
                 {
-                    var newClientMessages = new List<AutomationBase>();
+                    var newClientMessages = new List<AutomationMessage>();
                     clientsMessages.Add(connectionId, newClientMessages);
-                    newClientMessages.Add(node);
+                    newClientMessages.Add(message);
                 }
             }
         }
@@ -87,23 +89,23 @@ namespace AutomationApp.Hubs
         {
             while (!token.IsCancellationRequested)
             {
-                Dictionary<string, List<AutomationBase>> clientsMessagesToSend;
+                Dictionary<string, List<AutomationMessage>> clientsMessagesToSend;
                 lock (lockObj)
                 {
                     clientsMessagesToSend = clientsMessages;
-                    clientsMessages = new Dictionary<string, List<AutomationBase>>();
+                    clientsMessages = new Dictionary<string, List<AutomationMessage>>();
                 }
 
                 foreach(var clientMessages in clientsMessagesToSend)
                 {
-                    await automationHubContext.Send(clientMessages.Key, clientMessages.Value.Select(n => n.Dto).ToList());
+                    await automationHubContext.Send(clientMessages.Key, clientMessages.Value);
                 }
 
                 await Task.Delay(10);
             }
         }
 
-        private Dictionary<string, List<AutomationBase>> clientsMessages = new Dictionary<string, List<AutomationBase>>();
+        private Dictionary<string, List<AutomationMessage>> clientsMessages = new Dictionary<string, List<AutomationMessage>>();
 
         private object lockObj = new object();
     }
