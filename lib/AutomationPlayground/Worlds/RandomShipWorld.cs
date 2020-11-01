@@ -14,6 +14,12 @@ namespace AutomationPlayground.Worlds
         {
             base.OnCreated();
 
+            SetProperty("width", "1000px");
+            SetProperty("height", "1000px");
+            SetProperty("color", "white");
+            SetProperty("background-color", "black");
+            SetProperty("overflow", "hidden");
+
             for (var n = 0; n < 5; n++)
             {
                 AddShip();

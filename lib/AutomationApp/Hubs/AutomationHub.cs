@@ -29,8 +29,8 @@ namespace AutomationApp.Hubs
             await base.OnConnectedAsync();
 
             //worldCatalogue.CreateWorld<ShipWorld>(Context.ConnectionId);
-            worldCatalogue.CreateWorld<RandomShipWorld>(Context.ConnectionId);
-            //worldCatalogue.CreateWorld<LogoWorld>(Context.ConnectionId);
+            //worldCatalogue.CreateWorld<RandomShipWorld>(Context.ConnectionId);
+            worldCatalogue.CreateWorld<MijabrWorld>(Context.ConnectionId);
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)
@@ -48,7 +48,7 @@ namespace AutomationApp.Hubs
             this.hubContext = hubContext;
         }
 
-        public async Task Send(string connectionId, List<AutomationMessage> messages)
+        public async Task Send(string connectionId, List<Dictionary<string, object>> messages)
         {
             await hubContext.Clients.Client(connectionId).SendAsync("AutomationMessage", messages);
         }
@@ -63,7 +63,7 @@ namespace AutomationApp.Hubs
             this.automationHubContext = automationHubContext;
         }
 
-        public void Send(string connectionId, AutomationMessage message)
+        public void Send(string connectionId, Dictionary<string, object> message)
         {
             lock (lockObj)
             {
@@ -73,7 +73,7 @@ namespace AutomationApp.Hubs
                 }
                 else
                 {
-                    var newClientMessages = new List<AutomationMessage>();
+                    var newClientMessages = new List<Dictionary<string, object>>();
                     clientsMessages.Add(connectionId, newClientMessages);
                     newClientMessages.Add(message);
                 }
@@ -89,11 +89,11 @@ namespace AutomationApp.Hubs
         {
             while (!token.IsCancellationRequested)
             {
-                Dictionary<string, List<AutomationMessage>> clientsMessagesToSend;
+                Dictionary<string, List<Dictionary<string, object>>> clientsMessagesToSend;
                 lock (lockObj)
                 {
                     clientsMessagesToSend = clientsMessages;
-                    clientsMessages = new Dictionary<string, List<AutomationMessage>>();
+                    clientsMessages = new Dictionary<string, List<Dictionary<string, object>>>();
                 }
 
                 foreach(var clientMessages in clientsMessagesToSend)
@@ -105,7 +105,7 @@ namespace AutomationApp.Hubs
             }
         }
 
-        private Dictionary<string, List<AutomationMessage>> clientsMessages = new Dictionary<string, List<AutomationMessage>>();
+        private Dictionary<string, List<Dictionary<string, object>>> clientsMessages = new Dictionary<string, List<Dictionary<string, object>>>();
 
         private object lockObj = new object();
     }

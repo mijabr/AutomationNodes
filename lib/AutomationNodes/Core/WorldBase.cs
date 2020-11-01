@@ -21,6 +21,8 @@ namespace AutomationNodes.Core
             this.hubManager = hubManager;
         }
 
+        public Guid Id { get; } = Guid.NewGuid();
+
         public string ConnectionId { get; }
 
         public T CreateNode<T>(params object[] parameters) where T : AutomationBase
@@ -43,30 +45,35 @@ namespace AutomationNodes.Core
 
             node.Parent = parent;
             worldCatalogue.Nodes.Add(node.Id, node);
-            worldCatalogue.SubscribeToNode(this, node.Id);
-            hubManager.Send(ConnectionId, node.CreateMessage());
+            hubManager.Send(ConnectionId, node.CreationMessage());
             node.OnCreated();
 
             return (T)node;
         }
 
-        public void MoveNode(AutomationBase node)
+        public void SetProperty(string name, string value, Guid? nodeId = null)
         {
-            hubManager.Send(ConnectionId, node.MoveMessage());
-
-            worldCatalogue.AddFutureEvent(new TemporalEvent
+            hubManager.Send(ConnectionId, new Dictionary<string, object>
             {
-                EventName = "node-arrival",
-                TriggerAt = worldTime.Time.Elapsed + node.HeadingEta,
-                RegardingNode = node.Id,
-                RegardingLocation = node.Heading
+                { "message", "SetProperty" },
+                { "id", nodeId ?? Id },
+                { "name", name },
+                { "value", value }
             });
         }
 
-        public void RotateNode(AutomationBase node)
+        internal void SetTransition(Dictionary<string, string> transitionProperties, TimeSpan timeSpan, Guid nodeId)
         {
-            hubManager.Send(ConnectionId, node.RotateMessage());
+            hubManager.Send(ConnectionId, new Dictionary<string, object>
+            {
+                { "message", "SetTransition" },
+                { "id", nodeId },
+                { "properties", transitionProperties },
+                { "duration", timeSpan.TotalMilliseconds }
+            });
         }
+
+        public TimeSpan Time => worldTime.Time.Elapsed;
 
         public virtual void OnCreated()
         {
@@ -74,13 +81,6 @@ namespace AutomationNodes.Core
 
         public void OnEvent(TemporalEvent t)
         {
-            if (t.EventName == "node-arrival")
-            {
-                if (worldCatalogue.Nodes.TryGetValue(t.RegardingNode, out var node))
-                {
-                    node.Location = t.RegardingLocation;
-                }
-            }
         }
     }
 }

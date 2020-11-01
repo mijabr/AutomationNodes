@@ -23,10 +23,21 @@ namespace AutomationPlayground.Nodes
 
         public override void OnCreated()
         {
+            SetProperty("position", "absolute");
+            SetProperty("width", "50px");
+            SetProperty("height", "50px");
             shipImage = CreateNode<ShipImage>();
+            shipImage.SetProperty("width", "50px");
+            shipImage.SetProperty("height", "50px");
+
             Speed = 250;
             worldCatalogue.SubscribeToNode(this, Id);
         }
+
+        public Point Location { get; set; } = new Point();
+        public Point Heading { get; private set; } = new Point();
+        public TimeSpan HeadingEta { get; private set; }
+        public double Speed { get; set; } = 15;
 
         public List<Point> Waypoints { get; } = new List<Point>();
 
@@ -41,15 +52,18 @@ namespace AutomationPlayground.Nodes
             return this;
         }
 
-        public Ship Fly(int x, int y)
+        public Ship FlyNext(int x, int y)
         {
             return FlyTo(new Point(Waypoints.Last().X + x, Waypoints.Last().Y + y));
         }
 
-        private int waypointIndex;
-
         public override void OnEvent(TemporalEvent t)
         {
+            if (t.EventName == "node-arrival")
+            {
+                Location = t.RegardingLocation;
+            }
+
             Next();
         }
 
@@ -59,6 +73,8 @@ namespace AutomationPlayground.Nodes
             if (Waypoints?.Count > 0)
             {
                 Location = Waypoints[0];
+                SetProperty("left", $"{Location.X}");
+                SetProperty("top", $"{Location.Y}");
                 Next();
             }
         }
@@ -71,9 +87,30 @@ namespace AutomationPlayground.Nodes
             {
                 waypointIndex = 0;
             }
-            shipImage.Rotation = lastWaypoint.DirectionTo(Waypoints[waypointIndex]);
+            var rotation = lastWaypoint.DirectionTo(Waypoints[waypointIndex]);
+            shipImage.SetProperty("transform", $"rotate({rotation}deg)");
             MoveTo(Waypoints[waypointIndex]);
-            world.RotateNode(shipImage);
+        }
+
+        private int waypointIndex;
+
+        private void MoveTo(Point location, TimeSpan? time = null)
+        {
+            Heading = location;
+            HeadingEta = time ?? TimeSpan.FromMilliseconds(Location.DistanceTo(Heading) / Speed * 1000);
+            SetTransition(new Dictionary<string, string> {
+                {"left", $"{Heading.X}px"},
+                {"top", $"{Heading.Y}px"},
+            }, HeadingEta
+            );
+
+            worldCatalogue.AddFutureEvent(new TemporalEvent
+            {
+                EventName = "node-arrival",
+                TriggerAt = world.Time + HeadingEta,
+                RegardingNode = Id,
+                RegardingLocation = Heading
+            });
         }
     }
 }

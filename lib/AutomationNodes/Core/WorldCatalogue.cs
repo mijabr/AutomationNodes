@@ -28,10 +28,14 @@ namespace AutomationNodes.Core
         {
             var t = Activator.CreateInstance(typeof(T), new object[] { this, worldTime, connectionId, hubManager });
 
-            if (!(t is WorldBase world)) throw new Exception("Worlds must be based on WorldBase class");
+            if (!(t is WorldBase world)) throw new Exception("Worlds must be of type WorldBase");
 
             Worlds.Add(world);
-
+            hubManager.Send(connectionId, new Dictionary<string, object>
+            {
+                { "message", "World" },
+                { "id", world.Id }
+            });
             world.OnCreated();
 
             return (T)world;

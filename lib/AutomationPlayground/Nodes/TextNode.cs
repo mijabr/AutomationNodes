@@ -1,5 +1,6 @@
 ﻿using AutomationNodes.Core;
 using AutomationNodes.Nodes;
+using System.Collections.Generic;
 
 namespace AutomationPlayground.Nodes
 {
@@ -9,13 +10,13 @@ namespace AutomationPlayground.Nodes
         {
             InnerHtml = text;
         }
+        public string InnerHtml { get; set; }
 
-        public override AutomationMessage CreateMessage()
+        public override Dictionary<string, object> CreationMessage()
         {
-            var message = base.CreateMessage();
-            message.InnerHtml = InnerHtml;
+            var message = base.CreationMessage();
+            message.Add("innerHtml", InnerHtml);
             return message;
         }
-
     }
 }

@@ -13,16 +13,22 @@ namespace AutomationPlayground.Worlds
         {
             base.OnCreated();
 
+            SetProperty("width", "1000px");
+            SetProperty("height", "1000px");
+            SetProperty("color", "white");
+            SetProperty("background-color", "black");
+            SetProperty("overflow", "hidden");
+
             CreateNode<Ship>()
                 .FlyTo(new Point(300, 300))
-                .Fly(100, 0)
-                .Fly(100, 100)
-                .Fly(0, 100)
-                .Fly(-100, 100)
-                .Fly(-100, 0)
-                .Fly(-100, -100)
-                .Fly(0, -100)
-                .Fly(100, -100)
+                .FlyNext(100, 0)
+                .FlyNext(100, 100)
+                .FlyNext(0, 100)
+                .FlyNext(-100, 100)
+                .FlyNext(-100, 0)
+                .FlyNext(-100, -100)
+                .FlyNext(0, -100)
+                .FlyNext(100, -100)
                 .Start();
 
         }

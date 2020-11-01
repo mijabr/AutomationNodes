@@ -1,4 +1,5 @@
 ﻿using AutomationNodes.Core;
+using System.Collections.Generic;
 
 namespace AutomationNodes.Nodes
 {
@@ -10,11 +11,12 @@ namespace AutomationNodes.Nodes
         }
 
         public override string Type => "Img";
+        public string Image { get; set; }
 
-        public override AutomationMessage CreateMessage()
+        public override Dictionary<string, object> CreationMessage()
         {
-            var message = base.CreateMessage();
-            message.Image = Image;
+            var message = base.CreationMessage();
+            message.Add("image", Image);
             return message;
         }
     }
