@@ -4,7 +4,7 @@ namespace AutomationNodes.Nodes
 {
     public class DivNode : AutomationBase
     {
-        public DivNode(WorldCatalogue worldCatalogue, WorldBase world) : base(worldCatalogue, world)
+        public DivNode(WorldBase world) : base(world)
         {
         }
 

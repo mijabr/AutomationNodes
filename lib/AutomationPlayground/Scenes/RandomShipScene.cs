@@ -4,22 +4,14 @@ using System;
 
 namespace AutomationPlayground.Worlds
 {
-    public class RandomShipWorld : WorldBase
+    public class RandomShipScene : SceneBase
     {
-        public RandomShipWorld(WorldCatalogue worldCatalogue, WorldTime worldTime, string connectionId, IHubManager hubManager) : base(worldCatalogue, worldTime, connectionId, hubManager)
+        public RandomShipScene(IWorld world) : base(world)
         {
         }
 
-        public override void OnCreated()
+        public void Run()
         {
-            base.OnCreated();
-
-            SetProperty("width", "1000px");
-            SetProperty("height", "1000px");
-            SetProperty("color", "white");
-            SetProperty("background-color", "black");
-            SetProperty("overflow", "hidden");
-
             for (var n = 0; n < 5; n++)
             {
                 AddShip();
@@ -30,7 +22,7 @@ namespace AutomationPlayground.Worlds
 
         private void AddShip()
         {
-            CreateNode<Ship>()
+            World.CreateNode<Ship>()
                 .FlyTo(NextXCoord(), NextYCoord())
                 .FlyTo(NextXCoord(), NextYCoord())
                 .FlyTo(NextXCoord(), NextYCoord())

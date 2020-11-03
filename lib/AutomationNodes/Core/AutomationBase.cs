@@ -3,14 +3,18 @@ using System.Collections.Generic;
 
 namespace AutomationNodes.Core
 {
-    public abstract class AutomationBase : ITemporalEventHandler
+    public interface INode
     {
-        protected readonly WorldCatalogue worldCatalogue;
-        protected readonly WorldBase world;
+        void SetProperty(string name, string value);
+        void SetTransition(Dictionary<string, string> transitionProperties, TimeSpan duration);
+    }
 
-        public AutomationBase(WorldCatalogue worldCatalogue, WorldBase world)
+    public abstract class AutomationBase : INode, ITemporalEventHandler
+    {
+        protected readonly IWorld world;
+
+        public AutomationBase(IWorld world)
         {
-            this.worldCatalogue = worldCatalogue;
             this.world = world;
         }
 
@@ -24,9 +28,9 @@ namespace AutomationNodes.Core
             world.SetProperty(name, value, Id);
         }
 
-        public void SetTransition(Dictionary<string, string> transitionProperties, TimeSpan timeSpan)
+        public void SetTransition(Dictionary<string, string> transitionProperties, TimeSpan duration)
         {
-            world.SetTransition(transitionProperties, timeSpan, Id);
+            world.SetTransition(transitionProperties, duration, Id);
         }
 
         public T CreateNode<T>() where T : AutomationBase

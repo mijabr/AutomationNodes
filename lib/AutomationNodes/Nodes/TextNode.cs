@@ -1,12 +1,11 @@
 ﻿using AutomationNodes.Core;
-using AutomationNodes.Nodes;
 using System.Collections.Generic;
 
-namespace AutomationPlayground.Nodes
+namespace AutomationNodes.Nodes
 {
     public class TextNode : DivNode
     {
-        public TextNode(WorldCatalogue worldCatalogue, WorldBase world, string text) : base(worldCatalogue, world)
+        public TextNode(WorldBase world, string text) : base(world)
         {
             InnerHtml = text;
         }

@@ -8,7 +8,7 @@ namespace AutomationPlayground.Nodes
 {
     public class ShipImage : ImageNode
     {
-        public ShipImage(WorldCatalogue worldCatalogue, WorldBase world) : base(worldCatalogue, world, "ship-0001.svg")
+        public ShipImage(WorldBase world) : base(world, "ship-0001.svg")
         {
         }
     }
@@ -17,21 +17,26 @@ namespace AutomationPlayground.Nodes
     {
         private ShipImage shipImage;
 
-        public Ship(WorldCatalogue worldCatalogue, WorldBase world) : base(worldCatalogue, world)
+        public Ship(WorldBase world) : base(world)
         {
         }
 
         public override void OnCreated()
         {
-            SetProperty("position", "absolute");
-            SetProperty("width", "50px");
-            SetProperty("height", "50px");
             shipImage = CreateNode<ShipImage>();
-            shipImage.SetProperty("width", "50px");
-            shipImage.SetProperty("height", "50px");
-
+            SetProperty("position", "absolute");
+            SetSize("50px");
             Speed = 250;
-            worldCatalogue.SubscribeToNode(this, Id);
+            world.SubscribeToNode(this, Id);
+        }
+
+        public Ship SetSize(string size)
+        {
+            SetProperty("width", size);
+            SetProperty("height", size);
+            shipImage.SetProperty("width", size);
+            shipImage.SetProperty("height", size);
+            return this;
         }
 
         public Point Location { get; set; } = new Point();
@@ -104,7 +109,7 @@ namespace AutomationPlayground.Nodes
             }, HeadingEta
             );
 
-            worldCatalogue.AddFutureEvent(new TemporalEvent
+            world.AddFutureEvent(new TemporalEvent
             {
                 EventName = "node-arrival",
                 TriggerAt = world.Time + HeadingEta,
