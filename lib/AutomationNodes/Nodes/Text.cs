@@ -3,20 +3,18 @@ using System.Collections.Generic;
 
 namespace AutomationNodes.Nodes
 {
-    public class ImageNode : AutomationBase
+    public class Text : Div
     {
-        public ImageNode(WorldBase world, string image) : base(world)
+        public Text(WorldBase world, string text) : base(world)
         {
-            Image = image;
+            InnerHtml = text;
         }
-
-        public override string Type => "Img";
-        public string Image { get; set; }
+        public string InnerHtml { get; set; }
 
         public override Dictionary<string, object> CreationMessage()
         {
             var message = base.CreationMessage();
-            message.Add("image", Image);
+            message.Add("innerHtml", InnerHtml);
             return message;
         }
     }

@@ -2,9 +2,9 @@
 
 namespace AutomationNodes.Nodes
 {
-    public class DivNode : AutomationBase
+    public class Div : AutomationBase
     {
-        public DivNode(WorldBase world) : base(world)
+        public Div(WorldBase world) : base(world)
         {
         }
 

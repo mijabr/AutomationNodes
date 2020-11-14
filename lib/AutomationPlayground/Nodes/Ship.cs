@@ -6,14 +6,14 @@ using System.Linq;
 
 namespace AutomationPlayground.Nodes
 {
-    public class ShipImage : ImageNode
+    public class ShipImage : Image
     {
-        public ShipImage(WorldBase world) : base(world, "ship-0001.svg")
+        public ShipImage(WorldBase world) : base(world, "assets/ship-0001.svg")
         {
         }
     }
 
-    public class Ship : DivNode
+    public class Ship : Div
     {
         private ShipImage shipImage;
 

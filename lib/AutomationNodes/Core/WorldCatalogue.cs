@@ -58,16 +58,21 @@ namespace AutomationNodes.Core
 
                 processedEvents.ForEach(e =>
                 {
-                    if (subscriptions.TryGetValue(e.RegardingNode, out var regardingNodeSubscriptions))
+                    e.Action?.Invoke();
+
+                    if (e.RegardingNode != null)
                     {
-                        regardingNodeSubscriptions.ForEach(handler => handler.OnEvent(e));
+                        if (subscriptions.TryGetValue(e.RegardingNode, out var regardingNodeSubscriptions))
+                        {
+                            regardingNodeSubscriptions.ForEach(handler => handler.OnEvent(e));
+                        }
                     }
                 });
 
                 var endCount = events.Count;
                 //Console.WriteLine($"Processed in {startCount-endCount}/{startCount} {stopwatch.Elapsed}");
                 stopwatch.Restart();
-                await Task.Delay(20);
+                await Task.Delay(10);
             }
         }
 
@@ -102,6 +107,7 @@ namespace AutomationNodes.Core
         public TimeSpan TriggerAt { get; set; }
         public Guid RegardingNode { get; set; }
         public Point RegardingLocation { get; set; }
+        public Action Action { get; set; }
     }
 
     public interface ITemporalEventHandler

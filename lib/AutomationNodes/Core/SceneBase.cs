@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 
@@ -11,58 +12,187 @@ namespace AutomationNodes.Core
 
         public SceneBase(IWorld world)
         {
-            this.World = world;
+            World = world;
+            ScanAssemblyForNodes(Assembly.GetExecutingAssembly());
         }
 
         public void Run(string script)
         {
-            var scriptSplit = script.SplitAndTrim(';');
+            var scriptNoComments = string.Join("", script.SplitAndTrim('\r').Where(l => !l.StartsWith(@"//")));
+            var scriptSplit = scriptNoComments.SplitAndTrim(';');
             foreach (var statement in scriptSplit)
             {
-                var statementSplit = statement.SplitAndTrim('.');
-                var node = CreateNodeFromDeclaration(statementSplit[0]);
-                for (var n = 1; n < statementSplit.Length; n++)
+                var statementSplit = statement.SplitAndTrimEx('.');
+                RunStatement(statementSplit);
+            }
+        }
+
+        private TimeSpan SceneTime { get; set; }
+        private Dictionary<string, Type> typesLibrary = new Dictionary<string, Type>();
+        private Dictionary<string, NamedNodeInfo> namedNodes { get; } = new Dictionary<string, NamedNodeInfo>();
+
+        private void RunStatement(string[] statementSplit)
+        {
+            if (statementSplit[0].StartsWith("using "))
+            {
+                RunUsingCommand(statementSplit[0]);
+            }
+            else if (statementSplit[0].StartsWith("@"))
+            {
+                RunAtSymbolCommand(statementSplit[0]);
+            }
+            else
+            {
+                RunCommands(statementSplit);
+            }
+        }
+
+        private void RunUsingCommand(string usingAssembly)
+        {
+            var usingAssemblySplit = usingAssembly.SplitAndTrim();
+            try
+            {
+                var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                ScanAssemblyForNodes(Assembly.LoadFrom($"{path}\\{usingAssemblySplit[1]}"));
+            }
+            catch (FileNotFoundException x)
+            {
+                ScanAssemblyForNodes(Assembly.LoadFrom(usingAssemblySplit[1]));
+            }
+        }
+
+        private void RunAtSymbolCommand(string atSymbolCommand)
+        {
+            var commandSplit = atSymbolCommand.GetCommandAndQuotedAndTrim('(', ')');
+            SceneTime = TimeSpan.FromMilliseconds(int.Parse(commandSplit[1]));
+        }
+
+        private void RunCommands(string[] statementSplit)
+        {
+            var nodeInfo = CreateNodeFromDeclaration(statementSplit[0]);
+            for (var n = 1; n < statementSplit.Length; n++)
+            {
+                RunNodeCommand(nodeInfo, statementSplit[n]);
+            }
+        }
+
+        private class NamedNodeInfo
+        {
+            public NamedNodeInfo()
+            {
+            }
+
+            public NamedNodeInfo(INode node)
+            {
+                Node = node;
+            }
+
+            public INode Node { get; set; }
+            private TimeSpan? transitionPoint { get; set; }
+            public TimeSpan? DurationBefore => transitionPoint;
+            public void AddDuration(TimeSpan duration)
+            {
+                if (transitionPoint == null)
                 {
-                    RunNodeCommand(node, statementSplit[n]);
+                    transitionPoint = duration;
+                }
+                else
+                {
+                    transitionPoint += duration;
                 }
             }
         }
 
-        private INode CreateNodeFromDeclaration(string declaration)
+        private NamedNodeInfo CreateNodeFromDeclaration(string declaration)
         {
             var declarationSplit = declaration.SplitAndTrim('(', ')');
-            var typeName = declarationSplit[0];
+            if (declarationSplit.Length == 1)
+            {
+                return namedNodes[declarationSplit[0]];
+            }
+            var typeNameSplit = declarationSplit[0].SplitAndTrim('=');
+            string typeName;
+            string varName = null;
+            if (typeNameSplit.Length == 1)
+            {
+                typeName = declarationSplit[0];
+            }
+            else
+            {
+                varName = typeNameSplit[0];
+                typeName = typeNameSplit[1];
+            }
             var parameter = declarationSplit[1];
-            var type = Assembly.GetExecutingAssembly().GetTypes().Where(t => string.Equals(t.Name, typeName)).FirstOrDefault();
+            typesLibrary.TryGetValue(typeName, out var type);
+            if (type == null) throw new Exception($"Unknown node type '{typeName}'. Are you missing a using?");
             var parameters = new object[] { parameter };
-            var node = World.CreateNode(type, parameters);
-            return node as INode;
+            var nodeInfo = new NamedNodeInfo();
+
+            Action action = () =>
+            {
+                if (!(World.CreateNode(type, parameters) is INode node))
+                {
+                    throw new Exception($"Failed to create node '{typeName}'. Are you passing the correct parameters?");
+                }
+                nodeInfo.Node = node;
+            };
+
+            if (SceneTime > TimeSpan.Zero)
+            {
+                nodeInfo.AddDuration(SceneTime);
+                AddFutureEvent(action, SceneTime);
+            }
+            else
+            {
+                action.Invoke();
+            }
+
+            if (varName == null)
+            {
+                varName = Guid.NewGuid().ToString();
+            }
+
+            namedNodes[varName] = nodeInfo;
+
+            return nodeInfo;
         }
 
-        private void RunNodeCommand(INode node, string command)
+        private void RunNodeCommand(NamedNodeInfo nodeInfo, string command)
         {
-            var commandSplit = command.SplitAndTrim('(', ')');
+            var commandSplit = command.GetCommandAndQuotedAndTrim('(', ')');
             if (string.Equals(commandSplit[0], "set"))
             {
-                RunNodeSetCommand(node, commandSplit[1]);
+                RunNodeSetCommand(nodeInfo, commandSplit[1]);
             }
             else if (string.Equals(commandSplit[0], "transition"))
             {
-                RunNodeTransitionCommand(node, commandSplit[1]);
+                RunNodeTransitionCommand(nodeInfo, commandSplit[1]);
+            }
+            else if (string.Equals(commandSplit[0], "wait"))
+            {
+                RunNodeWaitCommand(nodeInfo, commandSplit[1]);
             }
         }
 
-        private void RunNodeSetCommand(INode node, string setProperties)
+        private void RunNodeSetCommand(NamedNodeInfo nodeInfo, string setProperties)
         {
             var setPropertiesSpilt = setProperties.SplitAndTrim('{', '}', ',');
             foreach (var property in setPropertiesSpilt)
             {
                 var propertySplit = property.SplitAndTrim(':');
-                node.SetProperty(propertySplit[0], propertySplit[1]);
+                Action action = () => nodeInfo.Node.SetProperty(propertySplit[0], propertySplit[1]);
+                if (nodeInfo.DurationBefore.HasValue)
+                {
+                    AddFutureEvent(action, nodeInfo.DurationBefore.Value);
+                }
+                else
+                {
+                    action.Invoke();
+                }
             }
         }
 
-        private void RunNodeTransitionCommand(INode node, string transitionProperties)
+        private void RunNodeTransitionCommand(NamedNodeInfo nodeInfo, string transitionProperties)
         {
             var transitionPropertiesSpilt = transitionProperties.SplitAndTrim('{', '}', ',').Where(s => s.Length > 0);
             var dictionaryProperties = new Dictionary<string, string>();
@@ -80,15 +210,43 @@ namespace AutomationNodes.Core
                 }
             }
 
-            node.SetTransition(dictionaryProperties, duration);
-        }
-    }
+           Action action = () => nodeInfo.Node.SetTransition(dictionaryProperties, duration);
+            if (nodeInfo.DurationBefore.HasValue)
+            {
+                AddFutureEvent(action, nodeInfo.DurationBefore.Value);
+            }
+            else
+            {
+                action.Invoke();
+            }
 
-    public static class StringExtensions
-    {
-        public static string[] SplitAndTrim(this string str, params char[] sepatator)
+            nodeInfo.AddDuration(duration);
+        }
+
+        private void RunNodeWaitCommand(NamedNodeInfo nodeInfo, string waitProperty)
         {
-            return str.Split(sepatator).Select(s => s.Trim()).Where(s => s.Length > 0).ToArray();
+            var duration = TimeSpan.FromMilliseconds(int.Parse(waitProperty));
+            nodeInfo.AddDuration(duration);
+        }
+
+        private void AddFutureEvent(Action action, TimeSpan when)
+        {
+            World.AddFutureEvent(new TemporalEvent
+            {
+                TriggerAt = World.Time + when,
+                Action = action
+            });
+        }
+
+        private void ScanAssemblyForNodes(Assembly assembly)
+        {
+            var types = assembly.GetTypes();
+            var itypes = types.Where(t => t.IsAssignableFrom(typeof(INode)));
+
+            foreach (var type in assembly.GetTypes().Where(t => typeof(INode).IsAssignableFrom(t)))
+            {
+                typesLibrary.Add(type.Name, type);
+            }
         }
     }
 }

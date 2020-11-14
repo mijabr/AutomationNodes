@@ -13,15 +13,17 @@ namespace AutomationPlayground.Worlds
         {
             base.OnCreated();
 
-            SetProperty("width", "1000px");
-            SetProperty("height", "1000px");
+            SetProperty("position", "relative");
+            SetProperty("width", "900px");
+            SetProperty("height", "900px");
             SetProperty("color", "white");
             SetProperty("background-color", "black");
             SetProperty("overflow", "hidden");
 
             new MijabrScene(this).Run();
-            new ShipScene(this).Run();
-            new RandomShipScene(this).Run();
+            //new ShipScene(this).Run();
+            //new RandomShipScene(this).Run();
+            new RocketElephantScene(this).Run();
         }
     }
 }
