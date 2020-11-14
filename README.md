@@ -2,7 +2,7 @@
 
 Create and animate HTML from C# using a simple DSL
 
-`
+```c#
 using AutomationPlayground;
 
 Image(assets/ship-0001.svg)
@@ -24,4 +24,4 @@ SpeechBubble(Nice landing!)
     .transition({opacity:1,duration:1000})
     .wait(2000)
     .transition({opacity:0,duration:1000});
-`
+```
