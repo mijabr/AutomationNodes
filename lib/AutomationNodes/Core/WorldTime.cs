@@ -1,12 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
+﻿using System.Diagnostics;
 
 namespace AutomationNodes.Core
 {
-    public class WorldTime
+    public interface IWorldTime
     {
-        public Stopwatch Time { get; set; } = Stopwatch.StartNew();
+        Stopwatch Time { get; }
+    }
+
+    public class WorldTime : IWorldTime
+    {
+        public Stopwatch Time { get; } = Stopwatch.StartNew();
     }
 }

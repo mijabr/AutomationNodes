@@ -3,39 +3,41 @@ using AutomationNodes.Nodes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace AutomationPlayground.Nodes
 {
-    public class ShipImage : Image
+    public class Ship : Div, ITemporalEventHandler
     {
-        public ShipImage(WorldBase world) : base(world, "assets/ship-0001.svg")
-        {
-        }
-    }
+        private readonly INodeCommander nodeCommander;
+        private readonly ITemporalEventQueue temporalEventQueue;
+        private readonly IWorldTime worldTime;
 
-    public class Ship : Div
-    {
-        private ShipImage shipImage;
-
-        public Ship(WorldBase world) : base(world)
+        public Ship(INodeCommander nodeCommander, ITemporalEventQueue temporalEventQueue, IWorldTime worldTime)
         {
+            this.nodeCommander = nodeCommander;
+            this.temporalEventQueue = temporalEventQueue;
+            this.worldTime = worldTime;
         }
 
-        public override void OnCreated()
+        private Image shipImage;
+
+        public override void OnCreated(object[] parameters)
         {
-            shipImage = CreateNode<ShipImage>();
-            SetProperty("position", "absolute");
+            base.OnCreated(parameters);
+            shipImage = nodeCommander.CreateChildNode<Image>(this, "assets/ship-0001.svg");
+            nodeCommander.SetProperty(this, "position", "absolute");
             SetSize("50px");
             Speed = 250;
-            world.SubscribeToNode(this, Id);
+            temporalEventQueue.SubscribeToNode(this, Id);
         }
 
         public Ship SetSize(string size)
         {
-            SetProperty("width", size);
-            SetProperty("height", size);
-            shipImage.SetProperty("width", size);
-            shipImage.SetProperty("height", size);
+            nodeCommander.SetProperty(this, "width", size);
+            nodeCommander.SetProperty(this, "height", size);
+            nodeCommander.SetProperty(shipImage, "width", size);
+            nodeCommander.SetProperty(shipImage, "height", size);
             return this;
         }
 
@@ -62,7 +64,7 @@ namespace AutomationPlayground.Nodes
             return FlyTo(new Point(Waypoints.Last().X + x, Waypoints.Last().Y + y));
         }
 
-        public override void OnEvent(TemporalEvent t)
+        public void OnTemporalEvent(TemporalEvent t)
         {
             if (t.EventName == "node-arrival")
             {
@@ -78,8 +80,8 @@ namespace AutomationPlayground.Nodes
             if (Waypoints?.Count > 0)
             {
                 Location = Waypoints[0];
-                SetProperty("left", $"{Location.X}");
-                SetProperty("top", $"{Location.Y}");
+                nodeCommander.SetProperty(this, "left", $"{Location.X}");
+                nodeCommander.SetProperty(this, "top", $"{Location.Y}");
                 Next();
             }
         }
@@ -93,7 +95,7 @@ namespace AutomationPlayground.Nodes
                 waypointIndex = 0;
             }
             var rotation = lastWaypoint.DirectionTo(Waypoints[waypointIndex]);
-            shipImage.SetProperty("transform", $"rotate({rotation}deg)");
+            nodeCommander.SetProperty(shipImage, "transform", $"rotate({rotation}deg)");
             MoveTo(Waypoints[waypointIndex]);
         }
 
@@ -103,16 +105,16 @@ namespace AutomationPlayground.Nodes
         {
             Heading = location;
             HeadingEta = time ?? TimeSpan.FromMilliseconds(Location.DistanceTo(Heading) / Speed * 1000);
-            SetTransition(new Dictionary<string, string> {
+            var transitionProperties = new Dictionary<string, string> {
                 {"left", $"{Heading.X}px"},
                 {"top", $"{Heading.Y}px"},
-            }, HeadingEta
-            );
+            };
+            nodeCommander.SetTransition(this, transitionProperties, HeadingEta);
 
-            world.AddFutureEvent(new TemporalEvent
+            temporalEventQueue.AddFutureEvent(new TemporalEvent
             {
                 EventName = "node-arrival",
-                TriggerAt = world.Time + HeadingEta,
+                TriggerAt = worldTime.Time.Elapsed + HeadingEta,
                 RegardingNode = Id,
                 RegardingLocation = Heading
             });

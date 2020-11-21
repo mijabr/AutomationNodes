@@ -12,11 +12,11 @@ namespace AutomationApp.Hubs
 {
     public class AutomationHub : Hub
     {
-        private readonly WorldCatalogue worldCatalogue;
+        private readonly INodeCommander nodeCommander;
 
-        public AutomationHub(WorldCatalogue worldCatalogue)
+        public AutomationHub(INodeCommander nodeCommander)
         {
-            this.worldCatalogue = worldCatalogue;
+            this.nodeCommander = nodeCommander;
         }
 
         public async Task SendMessage(string user, string message)
@@ -28,9 +28,7 @@ namespace AutomationApp.Hubs
         {
             await base.OnConnectedAsync();
 
-            //worldCatalogue.CreateWorld<ShipWorld>(Context.ConnectionId);
-            //worldCatalogue.CreateWorld<RandomShipWorld>(Context.ConnectionId);
-            worldCatalogue.CreateWorld<MijabrWorld>(Context.ConnectionId);
+            nodeCommander.CreateWorld<MijabrWorld>(Context.ConnectionId);
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)

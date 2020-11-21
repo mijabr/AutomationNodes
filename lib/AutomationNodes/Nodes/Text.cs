@@ -5,11 +5,17 @@ namespace AutomationNodes.Nodes
 {
     public class Text : Div
     {
-        public Text(WorldBase world, string text) : base(world)
-        {
-            InnerHtml = text;
-        }
         public string InnerHtml { get; set; }
+
+        public override void OnCreate(object[] parameters)
+        {
+            base.OnCreate(parameters);
+
+            if (parameters.Length > 0)
+            {
+                InnerHtml = (string)parameters[0];
+            }
+        }
 
         public override Dictionary<string, object> CreationMessage()
         {

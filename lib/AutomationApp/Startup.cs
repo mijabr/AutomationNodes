@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
+using System.Linq;
+using System.Reflection;
 
 namespace AutomationApp
 {
@@ -16,10 +19,16 @@ namespace AutomationApp
             services.AddSignalR();
 
             services.AddSingleton<ApplicationRunningToken>();
-            services.AddSingleton<WorldTime>();
-            services.AddSingleton<WorldCatalogue>();
             services.AddSingleton(typeof(IAutomationHubContext), typeof(AutomationHubContext));
+            services.AddSingleton(typeof(ITemporalEventQueue), typeof(TemporalEventQueue));
             services.AddSingleton(typeof(IHubManager), typeof(HubManager));
+            services.AddSingleton(typeof(IWorldTime), typeof(WorldTime));
+            services.AddSingleton(typeof(ISceneCompiler), typeof(SceneCompiler));
+            services.AddSingleton(typeof(ISceneActioner), typeof(SceneActioner));
+            services.AddSingleton(typeof(INodeCommander), typeof(NodeCommander));
+
+            services.AddAutomationArtifactsFromAssembly(Assembly.Load("AutomationNodes"));
+            services.AddAutomationArtifactsFromAssembly(Assembly.Load("AutomationPlayground"));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -44,6 +53,21 @@ namespace AutomationApp
                 var appToken = app.ApplicationServices.GetService(typeof(ApplicationRunningToken)) as ApplicationRunningToken;
                 appToken.CancellationToken.Cancel();
             });
+        }
+    }
+
+    public static class IServicesExtension
+    {
+        public static void AddAutomationArtifactsFromAssembly(this IServiceCollection services, Assembly assembly)
+        {
+            assembly.GetTypes()
+                .Where(t => t.IsClass && !t.IsAbstract &&
+                    (typeof(INode).IsAssignableFrom(t) || typeof(IScene).IsAssignableFrom(t)))
+                .ToList()
+                .ForEach(t => {
+                    Console.WriteLine($"Registered {t.Name}");
+                    services.AddTransient(t);
+                });
         }
     }
 }

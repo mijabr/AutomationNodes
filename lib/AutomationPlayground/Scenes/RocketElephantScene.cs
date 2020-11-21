@@ -2,13 +2,21 @@
 
 namespace AutomationPlayground.Scenes
 {
-    public class RocketElephantScene : SceneBase
+    public class RocketElephantScene : IScene
     {
-        public RocketElephantScene(IWorld world) : base(world)
+        private readonly ISceneActioner sceneActioner;
+
+        public RocketElephantScene(ISceneActioner sceneActioner)
         {
+            this.sceneActioner = sceneActioner;
         }
 
-        public string Script => @"
+        public void Run(string connectionId)
+        {
+            sceneActioner.Run(script, connectionId);
+        }
+
+        private const string script = @"
             using AutomationPlayground;
 
             Image(assets/ship-0001.svg)
@@ -29,12 +37,6 @@ namespace AutomationPlayground.Scenes
                 .set({position:absolute,opacity:0,left:60%,top:90%,width:150px})
                 .transition({opacity:1,duration:1000})
                 .wait(2000)
-                .transition({opacity:0,duration:1000});
-";
-
-        public void Run()
-        {
-            Run(Script);
-        }
+                .transition({opacity:0,duration:1000});";
     }
 }

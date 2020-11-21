@@ -30,8 +30,8 @@ namespace AutomationApp
         {
             var worldTime = host.Services.GetService(typeof(WorldTime)) as WorldTime;
             var token = host.Services.GetService(typeof(ApplicationRunningToken)) as ApplicationRunningToken;
-            var worldCatalogue = host.Services.GetService(typeof(WorldCatalogue)) as WorldCatalogue;
-            Task.Run(() => worldCatalogue.StartTemporalEventQueue(token.CancellationToken.Token));
+            var temporalEventQueue = host.Services.GetService(typeof(ITemporalEventQueue)) as TemporalEventQueue;
+            Task.Run(() => temporalEventQueue.StartTemporalEventQueue(token.CancellationToken.Token));
         }
 
         private static void StartHubManager(IHost host)

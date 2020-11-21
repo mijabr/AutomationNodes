@@ -2,12 +2,8 @@
 
 namespace AutomationNodes.Nodes
 {
-    public class Div : AutomationBase
+    public class Div : Node
     {
-        public Div(WorldBase world) : base(world)
-        {
-        }
-
         public override string Type => "Div";
     }
 }

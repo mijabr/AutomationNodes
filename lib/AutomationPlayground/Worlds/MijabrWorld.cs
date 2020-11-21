@@ -3,27 +3,43 @@ using AutomationPlayground.Scenes;
 
 namespace AutomationPlayground.Worlds
 {
-    public class MijabrWorld : WorldBase
+    public class MijabrWorld : World
     {
-        public MijabrWorld(WorldCatalogue worldCatalogue, WorldTime worldTime, string connectionId, IHubManager hubManager) : base(worldCatalogue, worldTime, connectionId, hubManager)
+        private readonly INodeCommander nodeCommander;
+        private readonly MijabrScene mijabrScene;
+        private readonly RocketElephantScene rocketElephantScene;
+        private readonly RandomShipScene randomShipScene;
+        private readonly ShipScene shipScene;
+
+        public MijabrWorld(
+            INodeCommander nodeCommander,
+            MijabrScene mijabrScene,
+            RocketElephantScene rocketElephantScene,
+            RandomShipScene randomShipScene,
+            ShipScene shipScene)
         {
+            this.nodeCommander = nodeCommander;
+            this.mijabrScene = mijabrScene;
+            this.rocketElephantScene = rocketElephantScene;
+            this.randomShipScene = randomShipScene;
+            this.shipScene = shipScene;
         }
 
-        public override void OnCreated()
+        public override void OnCreated(object[] parameters)
         {
-            base.OnCreated();
+            base.OnCreated(parameters);
 
-            SetProperty("position", "relative");
-            SetProperty("width", "900px");
-            SetProperty("height", "900px");
-            SetProperty("color", "white");
-            SetProperty("background-color", "black");
-            SetProperty("overflow", "hidden");
+            nodeCommander.SetProperty(this, "position", "relative");
+            nodeCommander.SetProperty(this, "width", "900px");
+            nodeCommander.SetProperty(this, "height", "900px");
+            nodeCommander.SetProperty(this, "color", "white");
+            nodeCommander.SetProperty(this, "background-color", "black");
+            nodeCommander.SetProperty(this, "overflow", "hidden");
 
-            new MijabrScene(this).Run();
-            //new ShipScene(this).Run();
-            //new RandomShipScene(this).Run();
-            new RocketElephantScene(this).Run();
+            mijabrScene.Run(ConnectionId);
+            rocketElephantScene.Run(ConnectionId);
+            //shipScene.Run(ConnectionId);
+            //randomShipScene.Run(ConnectionId);
         }
     }
 }

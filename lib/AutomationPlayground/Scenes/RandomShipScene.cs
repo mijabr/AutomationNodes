@@ -4,25 +4,27 @@ using System;
 
 namespace AutomationPlayground.Worlds
 {
-    public class RandomShipScene : SceneBase
+    public class RandomShipScene : IScene
     {
-        public RandomShipScene(IWorld world) : base(world)
+        private readonly INodeCommander nodeCommander;
+        private readonly Random random = new Random();
+
+        public RandomShipScene(INodeCommander nodeCommander)
         {
+            this.nodeCommander = nodeCommander;
         }
 
-        public void Run()
+        public void Run(string connectionId)
         {
             for (var n = 0; n < 5; n++)
             {
-                AddShip();
+                AddShip(connectionId);
             }
         }
 
-        private Random random = new Random();
-
-        private void AddShip()
+        private void AddShip(string connectionId)
         {
-            World.CreateNode<Ship>()
+            nodeCommander.CreateNode<Ship>(connectionId)
                 .FlyTo(NextXCoord(), NextYCoord())
                 .FlyTo(NextXCoord(), NextYCoord())
                 .FlyTo(NextXCoord(), NextYCoord())

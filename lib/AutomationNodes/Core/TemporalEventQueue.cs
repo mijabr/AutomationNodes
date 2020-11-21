@@ -2,43 +2,37 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace AutomationNodes.Core
 {
-    public class WorldCatalogue
+    public class TemporalEvent
     {
-        private readonly WorldTime worldTime;
-        private readonly IHubManager hubManager;
+        public string EventName { get; set; }
+        public TimeSpan TriggerAt { get; set; }
+        public Guid RegardingNode { get; set; }
+        public Point RegardingLocation { get; set; }
+        public Action Action { get; set; }
+    }
 
-        public WorldCatalogue(
-            WorldTime worldTime,
-            IHubManager hubManager)
+    public interface ITemporalEventHandler
+    {
+        void OnTemporalEvent(TemporalEvent t);
+    }
+
+    public interface ITemporalEventQueue
+    {
+        void SubscribeToNode(ITemporalEventHandler temporalEventHandler, Guid regardingNodeId);
+        void AddFutureEvent(TemporalEvent temporalEvent);
+    }
+
+    public class TemporalEventQueue : ITemporalEventQueue
+    {
+        public TemporalEventQueue(IWorldTime worldTime)
         {
             this.worldTime = worldTime;
-            this.hubManager = hubManager;
-        }
-
-        public List<WorldBase> Worlds { get; } = new List<WorldBase>();
-
-        public Dictionary<Guid, AutomationBase> Nodes { get; } = new Dictionary<Guid, AutomationBase>();
-
-        public T CreateWorld<T>(string connectionId) where T : WorldBase
-        {
-            var t = Activator.CreateInstance(typeof(T), new object[] { this, worldTime, connectionId, hubManager });
-
-            if (!(t is WorldBase world)) throw new Exception("Worlds must be of type WorldBase");
-
-            Worlds.Add(world);
-            hubManager.Send(connectionId, new Dictionary<string, object>
-            {
-                { "message", "World" },
-                { "id", world.Id }
-            });
-            world.OnCreated();
-
-            return (T)world;
         }
 
         public async Task StartTemporalEventQueue(CancellationToken token)
@@ -64,7 +58,7 @@ namespace AutomationNodes.Core
                     {
                         if (subscriptions.TryGetValue(e.RegardingNode, out var regardingNodeSubscriptions))
                         {
-                            regardingNodeSubscriptions.ForEach(handler => handler.OnEvent(e));
+                            regardingNodeSubscriptions.ForEach(handler => handler.OnTemporalEvent(e));
                         }
                     }
                 });
@@ -88,6 +82,7 @@ namespace AutomationNodes.Core
         }
 
         private readonly Dictionary<Guid, List<ITemporalEventHandler>> subscriptions = new Dictionary<Guid, List<ITemporalEventHandler>>();
+        private readonly IWorldTime worldTime;
 
         public void SubscribeToNode(ITemporalEventHandler temporalEventHandler, Guid regardingNodeId)
         {
@@ -99,24 +94,6 @@ namespace AutomationNodes.Core
 
             regardingNodeSubscriptions.Add(temporalEventHandler);
         }
-    }
 
-    public class TemporalEvent
-    {
-        public string EventName { get; set; }
-        public TimeSpan TriggerAt { get; set; }
-        public Guid RegardingNode { get; set; }
-        public Point RegardingLocation { get; set; }
-        public Action Action { get; set; }
-    }
-
-    public interface ITemporalEventHandler
-    {
-        void OnEvent(TemporalEvent t);
-    }
-
-    public interface ICreatable
-    {
-        void OnCreated();
     }
 }

@@ -6,18 +6,43 @@ using System.Reflection;
 
 namespace AutomationNodes.Core
 {
-    public class SceneBase
+    public class SceneEvent
     {
-        protected IWorld World { get; private set; }
+        public TimeSpan TriggerAt { get; set; }
+        public string NodeName { get; set; }
+    }
 
-        public SceneBase(IWorld world)
+    public class SceneCreateEvent : SceneEvent
+    {
+        public Type Type { get; set; }
+        public string Parameter { get; set; }
+    }
+
+    public class SceneSetPropertyEvent : SceneEvent
+    {
+        public string PropertyName { get; set; }
+        public string PropertyValue { get; set; }
+    }
+
+    public class SceneSetTransitionEvent : SceneEvent
+    {
+        public Dictionary<string, string> TransitionProperties { get; set; }
+        public TimeSpan Duration { get; set; }
+    }
+
+    public interface ISceneCompiler
+    {
+        List<SceneEvent> Compile(string script);
+    }
+
+    public class SceneCompiler : ISceneCompiler
+    {
+        public List<SceneEvent> Compile(string script)
         {
-            World = world;
+            compilationState = new CompilatonState();
+
             ScanAssemblyForNodes(Assembly.GetExecutingAssembly());
-        }
 
-        public void Run(string script)
-        {
             var scriptNoComments = string.Join("", script.SplitAndTrim('\r').Where(l => !l.StartsWith(@"//")));
             var scriptSplit = scriptNoComments.SplitAndTrim(';');
             foreach (var statement in scriptSplit)
@@ -25,11 +50,22 @@ namespace AutomationNodes.Core
                 var statementSplit = statement.SplitAndTrimEx('.');
                 RunStatement(statementSplit);
             }
+
+            return compilationState.Events;
         }
 
-        private TimeSpan SceneTime { get; set; }
-        private Dictionary<string, Type> typesLibrary = new Dictionary<string, Type>();
-        private Dictionary<string, NamedNodeInfo> namedNodes { get; } = new Dictionary<string, NamedNodeInfo>();
+        private class CompilatonState
+        {
+            public List<SceneEvent> Events { get; set; } = new List<SceneEvent>();
+
+            public TimeSpan SceneTime { get; set; } = TimeSpan.Zero;
+
+            public Dictionary<string, Type> TypesLibrary = new Dictionary<string, Type>();
+
+            public Dictionary<string, NamedNodeInfo> NamedNodes { get; } = new Dictionary<string, NamedNodeInfo>();
+        }
+
+        private CompilatonState compilationState;
 
         private void RunStatement(string[] statementSplit)
         {
@@ -64,7 +100,7 @@ namespace AutomationNodes.Core
         private void RunAtSymbolCommand(string atSymbolCommand)
         {
             var commandSplit = atSymbolCommand.GetCommandAndQuotedAndTrim('(', ')');
-            SceneTime = TimeSpan.FromMilliseconds(int.Parse(commandSplit[1]));
+            compilationState.SceneTime = TimeSpan.FromMilliseconds(int.Parse(commandSplit[1]));
         }
 
         private void RunCommands(string[] statementSplit)
@@ -78,18 +114,14 @@ namespace AutomationNodes.Core
 
         private class NamedNodeInfo
         {
-            public NamedNodeInfo()
+            public NamedNodeInfo(string name)
             {
+                Name = name;
             }
 
-            public NamedNodeInfo(INode node)
-            {
-                Node = node;
-            }
-
-            public INode Node { get; set; }
-            private TimeSpan? transitionPoint { get; set; }
-            public TimeSpan? DurationBefore => transitionPoint;
+            public string Name { get; set; }
+            private TimeSpan transitionPoint { get; set; } = TimeSpan.Zero;
+            public TimeSpan DurationBefore => transitionPoint;
             public void AddDuration(TimeSpan duration)
             {
                 if (transitionPoint == null)
@@ -108,13 +140,14 @@ namespace AutomationNodes.Core
             var declarationSplit = declaration.SplitAndTrim('(', ')');
             if (declarationSplit.Length == 1)
             {
-                return namedNodes[declarationSplit[0]];
+                return compilationState.NamedNodes[declarationSplit[0]];
             }
             var typeNameSplit = declarationSplit[0].SplitAndTrim('=');
             string typeName;
-            string varName = null;
+            string varName;
             if (typeNameSplit.Length == 1)
             {
+                varName = Guid.NewGuid().ToString();
                 typeName = declarationSplit[0];
             }
             else
@@ -122,37 +155,21 @@ namespace AutomationNodes.Core
                 varName = typeNameSplit[0];
                 typeName = typeNameSplit[1];
             }
-            var parameter = declarationSplit[1];
-            typesLibrary.TryGetValue(typeName, out var type);
+            compilationState.TypesLibrary.TryGetValue(typeName, out var type);
             if (type == null) throw new Exception($"Unknown node type '{typeName}'. Are you missing a using?");
-            var parameters = new object[] { parameter };
-            var nodeInfo = new NamedNodeInfo();
+            var nodeInfo = new NamedNodeInfo(varName);
 
-            Action action = () =>
+            compilationState.Events.Add(new SceneCreateEvent
             {
-                if (!(World.CreateNode(type, parameters) is INode node))
-                {
-                    throw new Exception($"Failed to create node '{typeName}'. Are you passing the correct parameters?");
-                }
-                nodeInfo.Node = node;
-            };
+                TriggerAt = compilationState.SceneTime,
+                NodeName = varName,
+                Type = type,
+                Parameter = declarationSplit[1]
+            });
 
-            if (SceneTime > TimeSpan.Zero)
-            {
-                nodeInfo.AddDuration(SceneTime);
-                AddFutureEvent(action, SceneTime);
-            }
-            else
-            {
-                action.Invoke();
-            }
+            nodeInfo.AddDuration(compilationState.SceneTime);
 
-            if (varName == null)
-            {
-                varName = Guid.NewGuid().ToString();
-            }
-
-            namedNodes[varName] = nodeInfo;
+            compilationState.NamedNodes[varName] = nodeInfo;
 
             return nodeInfo;
         }
@@ -180,15 +197,13 @@ namespace AutomationNodes.Core
             foreach (var property in setPropertiesSpilt)
             {
                 var propertySplit = property.SplitAndTrim(':');
-                Action action = () => nodeInfo.Node.SetProperty(propertySplit[0], propertySplit[1]);
-                if (nodeInfo.DurationBefore.HasValue)
+                compilationState.Events.Add(new SceneSetPropertyEvent
                 {
-                    AddFutureEvent(action, nodeInfo.DurationBefore.Value);
-                }
-                else
-                {
-                    action.Invoke();
-                }
+                    TriggerAt = nodeInfo.DurationBefore,
+                    NodeName = nodeInfo.Name,
+                    PropertyName = propertySplit[0],
+                    PropertyValue = propertySplit[1]
+                });
             }
         }
 
@@ -210,15 +225,13 @@ namespace AutomationNodes.Core
                 }
             }
 
-           Action action = () => nodeInfo.Node.SetTransition(dictionaryProperties, duration);
-            if (nodeInfo.DurationBefore.HasValue)
+            compilationState.Events.Add(new SceneSetTransitionEvent
             {
-                AddFutureEvent(action, nodeInfo.DurationBefore.Value);
-            }
-            else
-            {
-                action.Invoke();
-            }
+                TriggerAt = nodeInfo.DurationBefore,
+                NodeName = nodeInfo.Name,
+                TransitionProperties = dictionaryProperties,
+                Duration = duration
+            });
 
             nodeInfo.AddDuration(duration);
         }
@@ -229,24 +242,15 @@ namespace AutomationNodes.Core
             nodeInfo.AddDuration(duration);
         }
 
-        private void AddFutureEvent(Action action, TimeSpan when)
-        {
-            World.AddFutureEvent(new TemporalEvent
-            {
-                TriggerAt = World.Time + when,
-                Action = action
-            });
-        }
-
         private void ScanAssemblyForNodes(Assembly assembly)
         {
             var types = assembly.GetTypes();
-            var itypes = types.Where(t => t.IsAssignableFrom(typeof(INode)));
 
             foreach (var type in assembly.GetTypes().Where(t => typeof(INode).IsAssignableFrom(t)))
             {
-                typesLibrary.Add(type.Name, type);
+                compilationState.TypesLibrary.Add(type.Name, type);
             }
         }
+
     }
 }

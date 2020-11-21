@@ -3,15 +3,18 @@ using AutomationPlayground.Nodes;
 
 namespace AutomationPlayground.Worlds
 {
-    public class ShipScene : SceneBase
+    public class ShipScene : IScene
     {
-        public ShipScene(IWorld world) : base(world)
+        private readonly INodeCommander nodeCommander;
+
+        public ShipScene(INodeCommander nodeCommander)
         {
+            this.nodeCommander = nodeCommander;
         }
 
-        public void Run()
+        public void Run(string connectionId)
         {
-            World.CreateNode<Ship>()
+            nodeCommander.CreateNode<Ship>(connectionId)
                 .SetSize("150px")
                 .FlyTo(new Point(300, 300))
                 .FlyNext(100, 0)
