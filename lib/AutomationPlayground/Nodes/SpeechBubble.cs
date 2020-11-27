@@ -23,6 +23,8 @@ namespace AutomationPlayground.Nodes
                 Text = (string)parameters[0];
             }
 
+            nodeCommander.SetProperty(this, "position", "absolute");
+
             var bubble = nodeCommander.CreateChildNode<Text>(this, Text);
             nodeCommander.SetProperty(bubble, "background", "white");
             nodeCommander.SetProperty(bubble, "color", "black");

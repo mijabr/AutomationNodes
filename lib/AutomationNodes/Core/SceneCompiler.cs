@@ -15,7 +15,7 @@ namespace AutomationNodes.Core
     public class SceneCreateEvent : SceneEvent
     {
         public Type Type { get; set; }
-        public string Parameter { get; set; }
+        public string[] Parameters { get; set; }
     }
 
     public class SceneSetPropertyEvent : SceneEvent
@@ -138,7 +138,7 @@ namespace AutomationNodes.Core
         private NamedNodeInfo CreateNodeFromDeclaration(string declaration)
         {
             var declarationSplit = declaration.SplitAndTrim('(', ')');
-            if (declarationSplit.Length == 1)
+            if (declarationSplit.Length == 1 && !declaration.Contains('('))
             {
                 return compilationState.NamedNodes[declarationSplit[0]];
             }
@@ -159,12 +159,11 @@ namespace AutomationNodes.Core
             if (type == null) throw new Exception($"Unknown node type '{typeName}'. Are you missing a using?");
             var nodeInfo = new NamedNodeInfo(varName);
 
-            compilationState.Events.Add(new SceneCreateEvent
-            {
+            compilationState.Events.Add(new SceneCreateEvent {
                 TriggerAt = compilationState.SceneTime,
                 NodeName = varName,
                 Type = type,
-                Parameter = declarationSplit[1]
+                Parameters = GetParameters(declarationSplit.Length > 1 ? declarationSplit[1] : string.Empty)
             });
 
             nodeInfo.AddDuration(compilationState.SceneTime);
@@ -172,6 +171,11 @@ namespace AutomationNodes.Core
             compilationState.NamedNodes[varName] = nodeInfo;
 
             return nodeInfo;
+        }
+
+        private string[] GetParameters(string parameters)
+        {
+            return parameters.SplitAndTrim(',');
         }
 
         private void RunNodeCommand(NamedNodeInfo nodeInfo, string command)
@@ -193,7 +197,7 @@ namespace AutomationNodes.Core
 
         private void RunNodeSetCommand(NamedNodeInfo nodeInfo, string setProperties)
         {
-            var setPropertiesSpilt = setProperties.SplitAndTrim('{', '}', ',');
+            var setPropertiesSpilt = setProperties.SplitAndTrim('[', ']', ',');
             foreach (var property in setPropertiesSpilt)
             {
                 var propertySplit = property.SplitAndTrim(':');
@@ -209,7 +213,7 @@ namespace AutomationNodes.Core
 
         private void RunNodeTransitionCommand(NamedNodeInfo nodeInfo, string transitionProperties)
         {
-            var transitionPropertiesSpilt = transitionProperties.SplitAndTrim('{', '}', ',').Where(s => s.Length > 0);
+            var transitionPropertiesSpilt = transitionProperties.SplitAndTrim('[', ']', ',').Where(s => s.Length > 0);
             var dictionaryProperties = new Dictionary<string, string>();
             var duration = TimeSpan.Zero;
             foreach (var property in transitionPropertiesSpilt)

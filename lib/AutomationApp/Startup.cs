@@ -65,7 +65,6 @@ namespace AutomationApp
                     (typeof(INode).IsAssignableFrom(t) || typeof(IScene).IsAssignableFrom(t)))
                 .ToList()
                 .ForEach(t => {
-                    Console.WriteLine($"Registered {t.Name}");
                     services.AddTransient(t);
                 });
         }

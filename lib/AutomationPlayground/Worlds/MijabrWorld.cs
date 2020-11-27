@@ -7,22 +7,16 @@ namespace AutomationPlayground.Worlds
     {
         private readonly INodeCommander nodeCommander;
         private readonly MijabrScene mijabrScene;
-        private readonly RocketElephantScene rocketElephantScene;
-        private readonly RandomShipScene randomShipScene;
-        private readonly ShipScene shipScene;
+        private readonly RocketElephantScene birdFlyAttemptScene;
 
         public MijabrWorld(
             INodeCommander nodeCommander,
             MijabrScene mijabrScene,
-            RocketElephantScene rocketElephantScene,
-            RandomShipScene randomShipScene,
-            ShipScene shipScene)
+            RocketElephantScene birdFlyAttemptScene)
         {
             this.nodeCommander = nodeCommander;
             this.mijabrScene = mijabrScene;
-            this.rocketElephantScene = rocketElephantScene;
-            this.randomShipScene = randomShipScene;
-            this.shipScene = shipScene;
+            this.birdFlyAttemptScene = birdFlyAttemptScene;
         }
 
         public override void OnCreated(object[] parameters)
@@ -37,9 +31,7 @@ namespace AutomationPlayground.Worlds
             nodeCommander.SetProperty(this, "overflow", "hidden");
 
             mijabrScene.Run(ConnectionId);
-            rocketElephantScene.Run(ConnectionId);
-            //shipScene.Run(ConnectionId);
-            //randomShipScene.Run(ConnectionId);
+            birdFlyAttemptScene.Run(ConnectionId);
         }
     }
 }

@@ -75,7 +75,7 @@ namespace AutomationNodes.Core
 
         private void CreateEventAction(RunState runState, SceneCreateEvent sceneCreateEvent)
         {
-            if (!(nodeCommander.CreateNode(sceneCreateEvent.Type, runState.ConnectionId, sceneCreateEvent.Parameter) is INode node))
+            if (!(nodeCommander.CreateNode(sceneCreateEvent.Type, runState.ConnectionId, sceneCreateEvent.Parameters) is INode node))
             {
                 throw new Exception($"Failed to create node '{sceneCreateEvent.Type}'");
             }
