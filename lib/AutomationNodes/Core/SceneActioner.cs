@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AutomationNodes.Core.Compile;
+using System;
 using System.Collections.Generic;
 
 namespace AutomationNodes.Core
@@ -36,10 +37,10 @@ namespace AutomationNodes.Core
         {
             public string ConnectionId { get; set; }
             public Dictionary<string, INode> NodeVariables { get; } = new Dictionary<string, INode>();
-            public SceneEvent CurrentEvent { get; set; }
+            public SceneStatement CurrentEvent { get; set; }
         }
 
-        private void Run(List<SceneEvent> events, string connectionId)
+        private void Run(List<SceneStatement> events, string connectionId)
         {
             var runState = new RunState { ConnectionId = connectionId };
             events.ForEach(e => {
@@ -64,7 +65,7 @@ namespace AutomationNodes.Core
         {
             Action action = runState.CurrentEvent switch
             {
-                SceneCreateEvent createEvent => () => CreateEventAction(runState, createEvent),
+                SceneCreateStatement createEvent => () => CreateEventAction(runState, createEvent),
                 SceneSetPropertyEvent setEvent => () => SetEventAction(runState, setEvent),
                 SceneSetTransitionEvent transitionEvent => () => TransitionAction(runState, transitionEvent),
                 _ => throw new NotImplementedException()
@@ -73,7 +74,7 @@ namespace AutomationNodes.Core
             return action;
         }
 
-        private void CreateEventAction(RunState runState, SceneCreateEvent sceneCreateEvent)
+        private void CreateEventAction(RunState runState, SceneCreateStatement sceneCreateEvent)
         {
             if (!(nodeCommander.CreateNode(sceneCreateEvent.Type, runState.ConnectionId, sceneCreateEvent.Parameters) is INode node))
             {
