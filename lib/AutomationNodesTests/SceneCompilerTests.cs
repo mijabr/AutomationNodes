@@ -11,40 +11,40 @@ namespace AutomationNodesTests
 {
     public static class SceneEventExtensions
     {
-        public static void ShouldBeCreateStatement(this SceneStatement sceneEvent, string nodeName, Type type, TimeSpan triggerAt, params string[] parameters)
+        public static void ShouldBeCreateStatement(this CompiledStatement sceneStatement, string nodeName, Type type, TimeSpan triggerAt, params string[] parameters)
         {
-            sceneEvent.Should().BeEquivalentTo<SceneCreateStatement>(
+            sceneStatement.Should().BeEquivalentTo(
                 new SceneCreateStatement { NodeName = nodeName, Type = type, Parameters = parameters, TriggerAt = triggerAt }
             );
         }
 
-        public static void ShouldBeCreateStatement(this SceneStatement sceneEvent, Type type, TimeSpan triggerAt, params string[] parameters)
+        public static void ShouldBeCreateStatement(this CompiledStatement sceneStatement, Type type, TimeSpan triggerAt, params string[] parameters)
         {
-            sceneEvent.Should().BeEquivalentTo<SceneCreateStatement>(
+            sceneStatement.Should().BeEquivalentTo(
                 new SceneCreateStatement { Type = type, Parameters = parameters, TriggerAt = triggerAt },
                 opt => opt.Excluding(su => su.NodeName)
             );
-            sceneEvent.NodeName.Should().NotBeNullOrEmpty();
+            (sceneStatement as SceneCreateStatement).NodeName.Should().NotBeNullOrEmpty();
         }
 
-        public static void ShouldBeSetPropertyStatement(this SceneStatement sceneEvent, string nodeName, string propertyName, string propertyValue, TimeSpan triggerAt)
+        public static void ShouldBeSetPropertyStatement(this CompiledStatement sceneStatement, string nodeName, string propertyName, string propertyValue, TimeSpan triggerAt)
         {
-            sceneEvent.Should().BeEquivalentTo(new SceneSetPropertyEvent {
+            sceneStatement.Should().BeEquivalentTo(new SceneSetPropertyStatement {
                 NodeName = nodeName, PropertyName = propertyName, PropertyValue = propertyValue, TriggerAt = triggerAt
             });
         }
 
-        public static void ShouldBeSetPropertyStatement(this SceneStatement sceneEvent, string propertyName, string propertyValue, TimeSpan triggerAt)
+        public static void ShouldBeSetPropertyStatement(this CompiledStatement sceneStatement, string propertyName, string propertyValue, TimeSpan triggerAt)
         {
-            sceneEvent.Should().BeEquivalentTo(
-                new SceneSetPropertyEvent { PropertyName = propertyName, PropertyValue = propertyValue, TriggerAt = triggerAt },
+            sceneStatement.Should().BeEquivalentTo(
+                new SceneSetPropertyStatement { PropertyName = propertyName, PropertyValue = propertyValue, TriggerAt = triggerAt },
                 opt => opt.Excluding(su => su.NodeName)
             );
         }
 
-        public static void ShouldBeSetTransitionEvent(this SceneStatement sceneEvent, string nodeName, Dictionary<string, string> transitionName, TimeSpan duration, TimeSpan triggerAt)
+        public static void ShouldBeSetTransitionEvent(this CompiledStatement sceneStatement, string nodeName, Dictionary<string, string> transitionName, TimeSpan duration, TimeSpan triggerAt)
         {
-            sceneEvent.Should().BeEquivalentTo(new SceneSetTransitionEvent {
+            sceneStatement.Should().BeEquivalentTo(new SceneSetTransitionStatement {
                 NodeName = nodeName,
                 TransitionProperties = transitionName,
                 Duration = duration,
@@ -52,13 +52,20 @@ namespace AutomationNodesTests
             });
         }
 
-        public static void ShouldBeSetTransitionEvent(this SceneStatement sceneEvent, Dictionary<string, string> transitionName, TimeSpan duration, TimeSpan triggerAt)
+        public static void ShouldBeSetTransitionEvent(this CompiledStatement sceneStatement, Dictionary<string, string> transitionName, TimeSpan duration, TimeSpan triggerAt)
         {
-            sceneEvent.Should().BeEquivalentTo(new SceneSetTransitionEvent {
+            sceneStatement.Should().BeEquivalentTo(new SceneSetTransitionStatement {
                 TransitionProperties = transitionName,
                 Duration = duration,
                 TriggerAt = triggerAt
             }, opt => opt.Excluding(su => su.NodeName));
+        }
+
+        public static void ShouldBeClassStatement(this CompiledStatement sceneStatement, string className)
+        {
+            sceneStatement.Should().BeEquivalentTo(new SceneClassStatement {
+                ClassName = className
+            });
         }
     }
 
@@ -74,8 +81,9 @@ namespace AutomationNodesTests
                 var constructionModule = new ConstructionModule(serviceProvider.Object);
                 var setFunctionModule = new SetFunctionModule(serviceProvider.Object);
                 var transitionFunctionModule = new TransitionFunctionModule(serviceProvider.Object);
-                var commonModule = new CommonModule(constructionModule, setFunctionModule, transitionFunctionModule);
-                serviceProvider.Setup(s => s.GetService(It.Is<Type>(t => t == typeof(ICommonModule)))).Returns(commonModule);
+                var classModule = new ClassModule(serviceProvider.Object);
+                var commonModule = new OpeningModule(constructionModule, setFunctionModule, transitionFunctionModule, classModule);
+                serviceProvider.Setup(s => s.GetService(It.Is<Type>(t => t == typeof(IOpeningModule)))).Returns(commonModule);
                 SceneCompiler = new SceneCompiler(new ScriptTokenizer(), commonModule, constructionModule, setFunctionModule, transitionFunctionModule);
             }
         }
@@ -125,8 +133,8 @@ namespace AutomationNodesTests
             var events = state.SceneCompiler.Compile(script);
 
             events.Count.Should().Be(2);
-            var nodeName = events[0].NodeName;
             events[0].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, "1");
+            var nodeName = (events[0] as SceneCreateStatement).NodeName;
             events[1].ShouldBeSetPropertyStatement(nodeName, "position", "absolute", TimeSpan.Zero);
         }
 
@@ -139,7 +147,7 @@ namespace AutomationNodesTests
             var events = state.SceneCompiler.Compile(script);
 
             events.Count.Should().Be(4);
-            var nodeName = events[0].NodeName;
+            var nodeName = (events[0] as SceneCreateStatement).NodeName;
             events[0].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, "1");
             events[1].ShouldBeSetPropertyStatement(nodeName, "position", "absolute", TimeSpan.Zero);
             events[2].ShouldBeSetPropertyStatement(nodeName, "left", "100px", TimeSpan.Zero);
@@ -155,7 +163,7 @@ namespace AutomationNodesTests
             var events = state.SceneCompiler.Compile(script);
 
             events.Count.Should().Be(3);
-            var nodeName = events[0].NodeName;
+            var nodeName = (events[0] as SceneCreateStatement).NodeName;
             events[0].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, "1");
             events[1].ShouldBeSetPropertyStatement(nodeName, "position", "absolute", TimeSpan.Zero);
             events[2].ShouldBeSetPropertyStatement(nodeName, "transform", "rotate(40.4.deg)", TimeSpan.Zero);
@@ -170,7 +178,7 @@ namespace AutomationNodesTests
             var events = state.SceneCompiler.Compile(script);
 
             events.Count.Should().Be(5);
-            var nodeName = events[0].NodeName;
+            var nodeName = (events[0] as SceneCreateStatement).NodeName;
             events[0].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, "1");
             events[1].ShouldBeSetPropertyStatement(nodeName, "position", "absolute", TimeSpan.Zero);
             events[2].ShouldBeSetPropertyStatement(nodeName, "left", "100px", TimeSpan.Zero);
@@ -192,7 +200,7 @@ namespace AutomationNodesTests
             var events = state.SceneCompiler.Compile(script);
 
             events.Count.Should().Be(5);
-            var nodeName = events[0].NodeName;
+            var nodeName = (events[0] as SceneCreateStatement).NodeName;
             events[0].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, "1");
             events[1].ShouldBeSetPropertyStatement(nodeName, "position", "absolute", TimeSpan.Zero);
             events[2].ShouldBeSetPropertyStatement(nodeName, "left", "100px", TimeSpan.Zero);
@@ -214,7 +222,7 @@ namespace AutomationNodesTests
             var events = state.SceneCompiler.Compile(script);
 
             events.Count.Should().Be(15);
-            var node1Name = events[0].NodeName;
+            var node1Name = (events[0] as SceneCreateStatement).NodeName;
             events[0].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, "1");
             events[1].ShouldBeSetPropertyStatement(node1Name, "position", "absolute", TimeSpan.Zero);
             events[2].ShouldBeSetPropertyStatement(node1Name, "left", "100px", TimeSpan.Zero);
@@ -222,7 +230,7 @@ namespace AutomationNodesTests
             events[4].ShouldBeSetTransitionEvent(node1Name, new Dictionary<string, string> { { "left", "0px" }, { "top", "0px" } },
                 TimeSpan.FromSeconds(1), TimeSpan.Zero);
 
-            var node2Name = events[5].NodeName;
+            var node2Name = (events[5] as SceneCreateStatement).NodeName;
             events[5].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, "2");
             events[6].ShouldBeSetPropertyStatement(node2Name, "position", "absolute", TimeSpan.Zero);
             events[7].ShouldBeSetPropertyStatement(node2Name, "left", "200px", TimeSpan.Zero);
@@ -230,7 +238,7 @@ namespace AutomationNodesTests
             events[9].ShouldBeSetTransitionEvent(node2Name, new Dictionary<string, string> { { "left", "10px" }, { "top", "10px" } },
                 TimeSpan.FromSeconds(1), TimeSpan.Zero);
 
-            var node3Name = events[10].NodeName;
+            var node3Name = (events[10] as SceneCreateStatement).NodeName;
             events[10].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, "3");
             events[11].ShouldBeSetPropertyStatement(node3Name, "position", "absolute", TimeSpan.Zero);
             events[12].ShouldBeSetPropertyStatement(node3Name, "left", "300px", TimeSpan.Zero);
@@ -390,6 +398,19 @@ namespace AutomationNodesTests
             events.Count.Should().Be(2);
             events[0].ShouldBeCreateStatement("node", typeof(MyNode), TimeSpan.Zero);
             events[1].ShouldBeSetPropertyStatement("node", "position", "absolute", TimeSpan.Zero);
+        }
+
+        [Test]
+        public void Run_ShouldCreateCustomerNode_GivenClass()
+        {
+            var state = new TestState();
+            const string script = @"
+            class Bird() { };";
+
+            var events = state.SceneCompiler.Compile(script);
+
+            events.Count.Should().Be(1);
+            events[0].ShouldBeClassStatement("Bird");
         }
 
         //[Test]

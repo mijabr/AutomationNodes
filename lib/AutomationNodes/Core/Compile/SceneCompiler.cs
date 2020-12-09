@@ -4,46 +4,22 @@ using System.Reflection;
 
 namespace AutomationNodes.Core.Compile
 {
-    public class SceneStatement
-    {
-        public TimeSpan TriggerAt { get; set; }
-        public string NodeName { get; set; }
-    }
-
-    public class SceneCreateStatement : SceneStatement
-    {
-        public Type Type { get; set; }
-        public string[] Parameters { get; set; }
-    }
-
-    public class SceneSetPropertyEvent : SceneStatement
-    {
-        public string PropertyName { get; set; }
-        public string PropertyValue { get; set; }
-    }
-
-    public class SceneSetTransitionEvent : SceneStatement
-    {
-        public Dictionary<string, string> TransitionProperties { get; set; }
-        public TimeSpan Duration { get; set; }
-    }
-
     public interface ISceneCompiler
     {
-        List<SceneStatement> Compile(string script);
+        List<CompiledStatement> Compile(string script);
     }
 
     public class SceneCompiler : ISceneCompiler
     {
         private readonly IScriptTokenizer scriptTokenizer;
-        private readonly ICommonModule commonModule;
+        private readonly IOpeningModule commonModule;
         private readonly IConstructionModule constructionModule;
         private readonly ISetFunctionModule setFunctionModule;
         private readonly ITransitionFunctionModule transitionFunctionModule;
 
         public SceneCompiler(
             IScriptTokenizer scriptTokenizer,
-            ICommonModule commonModule,
+            IOpeningModule commonModule,
             IConstructionModule constructionModule,
             ISetFunctionModule setFunctionModule,
             ITransitionFunctionModule transitionFunctionModule)
@@ -56,7 +32,7 @@ namespace AutomationNodes.Core.Compile
         }
 
 
-        public List<SceneStatement> Compile(string script)
+        public List<CompiledStatement> Compile(string script)
         {
             var compilation = new Compilation();
 
@@ -69,7 +45,7 @@ namespace AutomationNodes.Core.Compile
                 token = GetToken(compilation, tokenContext);
             }
 
-            return compilation.Statements;
+            return compilation.CompiledStatements;
         }
 
         private TokenParameters tokenParameters = new TokenParameters {

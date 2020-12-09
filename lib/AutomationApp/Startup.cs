@@ -27,10 +27,11 @@ namespace AutomationApp
             services.AddSingleton(typeof(ISceneCompiler), typeof(SceneCompiler));
             services.AddSingleton(typeof(ISceneActioner), typeof(SceneActioner));
             services.AddSingleton(typeof(INodeCommander), typeof(NodeCommander));
-            services.AddSingleton(typeof(ICommonModule), typeof(CommonModule));
+            services.AddSingleton(typeof(IOpeningModule), typeof(OpeningModule));
             services.AddSingleton(typeof(IConstructionModule), typeof(ConstructionModule));
             services.AddSingleton(typeof(ISetFunctionModule), typeof(SetFunctionModule));
             services.AddSingleton(typeof(ITransitionFunctionModule), typeof(TransitionFunctionModule));
+            services.AddSingleton(typeof(IClassModule), typeof(ClassModule));
 
             services.AddAutomationArtifactsFromAssembly(Assembly.Load("AutomationNodes"));
             services.AddAutomationArtifactsFromAssembly(Assembly.Load("AutomationPlayground"));

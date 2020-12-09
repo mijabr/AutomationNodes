@@ -12,60 +12,59 @@ namespace AutomationNodes.Core.Compile
 
     public class SetFunctionModule : ISetFunctionModule
     {
-        private readonly Lazy<ICommonModule> commonModule;
+        private readonly Lazy<IOpeningModule> openingModule;
 
         public SetFunctionModule(IServiceProvider serviceProvider)
         {
-            commonModule = new Lazy<ICommonModule>(() => (ICommonModule)serviceProvider.GetService(typeof(ICommonModule)));
+            openingModule = new Lazy<IOpeningModule>(() => (IOpeningModule)serviceProvider.GetService(typeof(IOpeningModule)));
         }
+
+        private const string SetFunctionParameterName = "SetFunctionParameterName";
+        private const string SetFunctionParameterValue = "SetFunctionParameterValue";
 
         public void ExpectSetFunctionParameterPropertyValue(Compilation compilation, string token)
         {
-            var current = compilation.CurrentStatement;
-            current.SetFunctionParameterValue = token;
-            commonModule.Value.CompileStatement(compilation);
-            compilation.CurrentStatement = new Statement();
-            compilation.CurrentStatement.Variable = current.Variable;
+            compilation.AddState(SetFunctionParameterValue, token);
+            CompileStatement(compilation);
+            compilation.State = new State(compilation.State.Variable);
             compilation.Expecting = ExpectSetFunctionParameters;
-            return;
         }
 
         public void ExpectSetFunctionParameterPropertySeparator(Compilation compilation, string token)
         {
-            if (token != ":") {
-                throw new Exception($"Expected : but got {token} after property name {compilation.CurrentStatement.SetFunctionParameterName}");
+            if (token.Is(":")) {
+                compilation.Expecting = ExpectSetFunctionParameterPropertyValue;
+            } else {
+                throw new Exception($"Expected : but got {token} after property name {compilation.GetState(SetFunctionParameterName)}");
             }
-            compilation.Expecting = ExpectSetFunctionParameterPropertyValue;
-            return;
         }
 
         public void ExpectSetFunctionParameterPropertyName(Compilation compilation, string token)
         {
-            var current = compilation.CurrentStatement;
-            if (current.SetFunctionParameterName == null) {
-                current.SetFunctionParameterName = token;
-                compilation.Expecting = ExpectSetFunctionParameterPropertySeparator;
-                return;
-            }
-            throw new Exception("Expected property name");
+            compilation.AddState(SetFunctionParameterName, token);
+            compilation.Expecting = ExpectSetFunctionParameterPropertySeparator;
         }
 
         public void ExpectSetFunctionParameters(Compilation compilation, string token)
         {
-            if (token == ")") {
-                compilation.Expecting = commonModule.Value.ExpectNothingInParticular;
-                return;
-            } else if (token == "[") {
-                compilation.CurrentStatement.ParameterGroup = true;
+            if (token.Is(")")) {
+                compilation.Expecting = openingModule.Value.ExpectNothingInParticular;
+            } else if (token.Is("[") || token.Is(",")) {
                 compilation.Expecting = ExpectSetFunctionParameterPropertyName;
-                return;
-            } else if (token == "]") {
-                return;
-            } else if (token == ",") {
-                compilation.Expecting = ExpectSetFunctionParameterPropertyName;
-                return;
+            } else if (token.Is("]")) {
+            } else {
+                throw new Exception($"Expected set function parameter but got {token}");
             }
-            throw new Exception($"Expected set function parameter but got {token}");
+        }
+
+        private static void CompileStatement(Compilation compilation)
+        {
+            compilation.CompiledStatements.Add(new SceneSetPropertyStatement {
+                TriggerAt = compilation.SceneTime + compilation.State.Variable.Duration,
+                NodeName = compilation.State.Variable.Name,
+                PropertyName = compilation.GetState(SetFunctionParameterName),
+                PropertyValue = compilation.GetState(SetFunctionParameterValue)
+            });
         }
     }
 }

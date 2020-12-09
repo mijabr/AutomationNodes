@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AutomationNodes.Core.Compile
 {
     public class Compilation
     {
-        public List<SceneStatement> Statements { get; set; } = new List<SceneStatement>();
+        public void AddState<T>(string key, T value) => State.States.Add(key, value);
+        public T GetState<T>(string key) => (T)State.States[key];
+        public string GetState(string key) => (string)State.States[key];
+        internal void RemoveState(string key) => State.States.Remove(key);
+        public bool IsState(string key, string value) => ((string)State.States[key]).Is(value);
 
-        public Statement CurrentStatement { get; set; } = new Statement();
+        public State State { get; set; } = new State();
 
         public Action<Compilation, string> Expecting { get; set; }
 
@@ -19,27 +20,55 @@ namespace AutomationNodes.Core.Compile
         public Dictionary<string, Type> TypesLibrary = new Dictionary<string, Type>();
 
         public Dictionary<string, Variable> Variables { get; } = new Dictionary<string, Variable>();
+
+        public List<CompiledStatement> CompiledStatements { get; set; } = new List<CompiledStatement>();
     }
 
-    public class Statement
+    public class State
     {
-        public string Token { get; set; }
+        public State() { }
+        public State(Variable variable) { Variable = variable; }
+
+        public Dictionary<string, object> States { get; set; } = new Dictionary<string, object>();
         public Variable Variable { get; set; }
-        public string TypeName { get; set; }
-        public List<string> Parameter { get; } = new List<string>();
-        public string FunctionName { get; set; }
-        public bool ParameterGroup { get; internal set; }
-        public string SetFunctionParameterName { get; set; }
-        public string SetFunctionParameterValue { get; set; }
-        public string TransitionFunctionParameterName { get; set; }
-        public string TransitionFunctionParameterValue { get; set; }
-        public string Duration { get; set; }
-        public Dictionary<string, string> TransitionParameters { get; set; }
     }
 
     public class Variable
     {
         public string Name { get; set; }
         public TimeSpan Duration { get; set; }
+    }
+
+    public class CompiledStatement
+    {
+        public TimeSpan TriggerAt { get; set; }
+    }
+
+    public class SceneNodeStatement : CompiledStatement
+    {
+        public string NodeName { get; set; }
+    }
+
+    public class SceneCreateStatement : SceneNodeStatement
+    {
+        public Type Type { get; set; }
+        public string[] Parameters { get; set; }
+    }
+
+    public class SceneSetPropertyStatement : SceneNodeStatement
+    {
+        public string PropertyName { get; set; }
+        public string PropertyValue { get; set; }
+    }
+
+    public class SceneSetTransitionStatement : SceneNodeStatement
+    {
+        public Dictionary<string, string> TransitionProperties { get; set; }
+        public TimeSpan Duration { get; set; }
+    }
+
+    public class SceneClassStatement : CompiledStatement
+    {
+        public string ClassName { get; set; }
     }
 }

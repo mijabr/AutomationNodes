@@ -9,75 +9,82 @@ namespace AutomationNodes.Core.Compile
         void ExpectTransitionFunctionParameterPropertySeparator(Compilation compilation, string token);
         void ExpectTransitionFunctionParameterPropertyName(Compilation compilation, string token);
         void ExpectTransitionFunctionParameters(Compilation compilation, string token);
+        void ExpectOpenBraket(Compilation compilation, string token);
     }
 
     public class TransitionFunctionModule : ITransitionFunctionModule
     {
-        private readonly Lazy<ICommonModule> commonModule;
+        private readonly Lazy<IOpeningModule> openingModule;
 
         public TransitionFunctionModule(IServiceProvider serviceProvider)
         {
-            commonModule = new Lazy<ICommonModule>(() => (ICommonModule)serviceProvider.GetService(typeof(ICommonModule)));
+            openingModule = new Lazy<IOpeningModule>(() => (IOpeningModule)serviceProvider.GetService(typeof(IOpeningModule)));
         }
 
-        public void ExpectTransitionFunctionParameterPropertyValue(Compilation compilation, string token)
+        private const string TransitionFunctionParameterName = "TransitionFunctionParameterName";
+        private const string TransitionParameters = "TransitionParameters";
+        private const string Duration = "Duration";
+
+        public void ExpectOpenBraket(Compilation compilation, string token)
         {
-            var current = compilation.CurrentStatement;
-            current.TransitionFunctionParameterValue = token;
-            if (string.Equals(current.TransitionFunctionParameterName, "duration", StringComparison.InvariantCultureIgnoreCase)) {
-                current.Duration = current.TransitionFunctionParameterValue;
-            } else {
-                if (current.TransitionParameters == null) {
-                    current.TransitionParameters = new Dictionary<string, string>();
-                }
-                current.TransitionParameters.Add(current.TransitionFunctionParameterName, current.TransitionFunctionParameterValue);
-            }
-            current.TransitionFunctionParameterName = null;
-            current.TransitionFunctionParameterValue = null;
+            compilation.AddState(TransitionParameters, new Dictionary<string, string>());
             compilation.Expecting = ExpectTransitionFunctionParameters;
-            return;
-        }
-
-        public void ExpectTransitionFunctionParameterPropertySeparator(Compilation compilation, string token)
-        {
-            if (token != ":") {
-                throw new Exception($"Expected : but got {token} after property name {compilation.CurrentStatement.TransitionFunctionParameterName}");
-            }
-            compilation.Expecting = ExpectTransitionFunctionParameterPropertyValue;
-            return;
-        }
-
-        public void ExpectTransitionFunctionParameterPropertyName(Compilation compilation, string token)
-        {
-            var current = compilation.CurrentStatement;
-            if (current.TransitionFunctionParameterName == null) {
-                current.TransitionFunctionParameterName = token;
-                compilation.Expecting = ExpectTransitionFunctionParameterPropertySeparator;
-                return;
-            }
-            throw new Exception($"Expected transition property name but got {token}");
         }
 
         public void ExpectTransitionFunctionParameters(Compilation compilation, string token)
         {
-            var current = compilation.CurrentStatement;
-            if (token == ")") {
-                commonModule.Value.CompileStatement(compilation);
-                compilation.CurrentStatement = new Statement();
-                compilation.CurrentStatement.Variable = current.Variable;
-                compilation.Expecting = commonModule.Value.ExpectNothingInParticular;
-                return;
-            } else if (token == "[") {
-                current.ParameterGroup = true;
+            var current = compilation.State;
+            if (token.Is(")")) {
+                CompileStatement(compilation);
+                compilation.State = new State();
+                compilation.State.Variable = current.Variable;
+                compilation.Expecting = openingModule.Value.ExpectNothingInParticular;
+            } else if (token.Is("[") || token.Is(",")) {
                 compilation.Expecting = ExpectTransitionFunctionParameterPropertyName;
-                return;
-            } else if (token == "]") {
-                return;
-            } else if (token == ",") {
-                compilation.Expecting = ExpectTransitionFunctionParameterPropertyName;
-                return;
+            } else if (token.Is("]")) {
+            } else {
+                throw new Exception($"Expected transition function parameter but got {token}");
             }
-            throw new Exception($"Expected transition function parameter but got {token}");
+        }
+
+        public void ExpectTransitionFunctionParameterPropertyName(Compilation compilation, string token)
+        {
+            compilation.AddState(TransitionFunctionParameterName, token);
+            compilation.Expecting = ExpectTransitionFunctionParameterPropertySeparator;
+        }
+
+        public void ExpectTransitionFunctionParameterPropertySeparator(Compilation compilation, string token)
+        {
+            if (token.Is(":")) {
+                compilation.Expecting = ExpectTransitionFunctionParameterPropertyValue;
+            } else {
+                throw new Exception($"Expected : but got {token} after property name {compilation.GetState(TransitionFunctionParameterName)}");
+            }
+        }
+
+        public void ExpectTransitionFunctionParameterPropertyValue(Compilation compilation, string token)
+        {
+            if (compilation.IsState(TransitionFunctionParameterName, "duration")) {
+                compilation.AddState(Duration, token);
+            } else {
+                compilation.GetState<Dictionary<string, string>>(TransitionParameters).Add(compilation.GetState(TransitionFunctionParameterName), token);
+            }
+
+            compilation.RemoveState(TransitionFunctionParameterName);
+            compilation.Expecting = ExpectTransitionFunctionParameters;
+        }
+
+        private static void CompileStatement(Compilation compilation)
+        {
+            var duration = TimeSpan.FromMilliseconds(int.Parse(compilation.GetState(Duration)));
+            compilation.CompiledStatements.Add(new SceneSetTransitionStatement {
+                TriggerAt = compilation.SceneTime + compilation.State.Variable.Duration,
+                NodeName = compilation.State.Variable.Name,
+                TransitionProperties = compilation.GetState<Dictionary<string, string>>(TransitionParameters),
+                Duration = duration
+            });
+
+            compilation.State.Variable.Duration += duration;
         }
     }
 }

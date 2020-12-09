@@ -17,5 +17,10 @@ namespace AutomationNodes.Core.Compile
         {
             return string.Equals(keyword, token, StringComparison.InvariantCulture);
         }
+
+        public static bool Is(this string token, string symbol)
+        {
+            return string.Equals(symbol, token, StringComparison.InvariantCulture);
+        }
     }
 }

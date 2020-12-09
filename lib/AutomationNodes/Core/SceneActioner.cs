@@ -37,10 +37,10 @@ namespace AutomationNodes.Core
         {
             public string ConnectionId { get; set; }
             public Dictionary<string, INode> NodeVariables { get; } = new Dictionary<string, INode>();
-            public SceneStatement CurrentEvent { get; set; }
+            public CompiledStatement CurrentEvent { get; set; }
         }
 
-        private void Run(List<SceneStatement> events, string connectionId)
+        private void Run(List<CompiledStatement> events, string connectionId)
         {
             var runState = new RunState { ConnectionId = connectionId };
             events.ForEach(e => {
@@ -66,8 +66,8 @@ namespace AutomationNodes.Core
             Action action = runState.CurrentEvent switch
             {
                 SceneCreateStatement createEvent => () => CreateEventAction(runState, createEvent),
-                SceneSetPropertyEvent setEvent => () => SetEventAction(runState, setEvent),
-                SceneSetTransitionEvent transitionEvent => () => TransitionAction(runState, transitionEvent),
+                SceneSetPropertyStatement setEvent => () => SetEventAction(runState, setEvent),
+                SceneSetTransitionStatement transitionEvent => () => TransitionAction(runState, transitionEvent),
                 _ => throw new NotImplementedException()
             };
 
@@ -84,13 +84,13 @@ namespace AutomationNodes.Core
             runState.NodeVariables[sceneCreateEvent.NodeName] = node;
         }
 
-        private void SetEventAction(RunState runState, SceneSetPropertyEvent setEvent)
+        private void SetEventAction(RunState runState, SceneSetPropertyStatement setEvent)
         {
             var node = runState.NodeVariables[setEvent.NodeName];
             nodeCommander.SetProperty(node, setEvent.PropertyName, setEvent.PropertyValue);
         }
 
-        private void TransitionAction(RunState runState, SceneSetTransitionEvent transitionEvent)
+        private void TransitionAction(RunState runState, SceneSetTransitionStatement transitionEvent)
         {
             var node = runState.NodeVariables[transitionEvent.NodeName];
             nodeCommander.SetTransition(node, transitionEvent.TransitionProperties, transitionEvent.Duration);

@@ -1,77 +1,87 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace AutomationNodes.Core.Compile
 {
     public interface IConstructionModule
     {
-        void ExpectVar(Compilation compilation, string token);
-        void ExpectAssignment(Compilation compilation, string token);
-        void ExpectConstructorOpenBracketOrDotOrAt(Compilation compilation, string token);
+        void ExpectVarName(Compilation compilation, string token);
+        void ExpectTypeName(Compilation compilation, string token);
+        void ExpectOpenBracket(Compilation compilation, string token);
         void ExpectConstructorParameters(Compilation compilation, string token);
     }
 
     public class ConstructionModule : IConstructionModule
     {
-        private readonly Lazy<ICommonModule> commonModule;
+        private readonly Lazy<IOpeningModule> commonModule;
 
         public ConstructionModule(IServiceProvider serviceProvider)
         {
-            commonModule = new Lazy<ICommonModule>(() => (ICommonModule)serviceProvider.GetService(typeof(ICommonModule)));
+            commonModule = new Lazy<IOpeningModule>(() => (IOpeningModule)serviceProvider.GetService(typeof(IOpeningModule)));
         }
 
-        public void ExpectVar(Compilation compilation, string token)
+        private const string TypeName = "TypeName";
+        private const string ConstructorParameters = "ConstructorParameters";
+
+        public void ExpectVarName(Compilation compilation, string token)
         {
-            var current = compilation.CurrentStatement;
+            var current = compilation.State;
             if (current.Variable == null) {
                 current.Variable = new Variable { Name = token };
                 compilation.Variables.Add(current.Variable.Name, current.Variable);
                 compilation.Expecting = ExpectAssignment;
-                return;
+            } else {
+                throw new Exception("variable already named");
             }
-            throw new Exception("variable already named");
         }
 
-        public void ExpectAssignment(Compilation compilation, string token)
+        private void ExpectAssignment(Compilation compilation, string token)
         {
             if (token == "=") {
                 compilation.Expecting = commonModule.Value.ExpectNothingInParticular;
-                return;
+            } else {
+                throw new Exception($"Expected = but got {token}");
             }
-            throw new Exception($"Expected = but got {token}");
         }
 
-        public void ExpectConstructorOpenBracketOrDotOrAt(Compilation compilation, string token)
+        public void ExpectTypeName(Compilation compilation, string token)
         {
-            var current = compilation.CurrentStatement;
+            compilation.AddState(TypeName, token);
+            compilation.Expecting = ExpectOpenBracket;
+        }
 
-            if (token == "(") {
-                if (current.Token == "@") {
-                    compilation.Expecting = commonModule.Value.ExpectAtParameter;
-                    return;
-                }
-                current.TypeName = current.Token;
-                if (current.Variable == null) {
-                    current.Variable = new Variable { Name = Guid.NewGuid().ToString() };
-                    compilation.Variables.Add(current.Variable.Name, current.Variable);
-                }
-                compilation.Expecting = ExpectConstructorParameters;
-                return;
-            } else if (token == ".") {
-                current.Variable = compilation.Variables[current.Token];
-                compilation.Expecting = commonModule.Value.ExpectFunctionName;
-                return;
+        public void ExpectOpenBracket(Compilation compilation, string token)
+        {
+            if (!token.Is("(")) {
+                throw new Exception($"Expected ( but got {token}");
             }
-            throw new Exception($"Expected . or ( after {current.Token}");
+
+            compilation.AddState(ConstructorParameters, new List<string>());
+            compilation.Expecting = ExpectConstructorParameters;
         }
 
         public void ExpectConstructorParameters(Compilation compilation, string token)
         {
             if (token == ")") {
+                CompileStatement(compilation);
                 compilation.Expecting = commonModule.Value.ExpectNothingInParticular;
             } else if (token != ",") {
-                compilation.CurrentStatement.Parameter.Add(token);
+                compilation.GetState<List<string>>(ConstructorParameters).Add(token);
             }
-            return;
+        }
+
+        private static void CompileStatement(Compilation compilation)
+        {
+            if (!compilation.TypesLibrary.TryGetValue(compilation.GetState(TypeName), out var type)) {
+                throw new Exception($"Unknown node type '{compilation.GetState(TypeName)}'. Are you missing a using?");
+            }
+
+            compilation.CompiledStatements.Add(new SceneCreateStatement {
+                TriggerAt = compilation.SceneTime,
+                NodeName = compilation.State.Variable.Name,
+                Type = type,
+                Parameters = compilation.GetState<List<string>>(ConstructorParameters).ToArray()
+            });
         }
     }
 }
