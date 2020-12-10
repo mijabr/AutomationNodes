@@ -21,13 +21,13 @@ namespace AutomationNodes.Core.Compile
         public void ExpectClassName(Compilation compilation, string token)
         {
             compilation.AddState(ClassName, token);
-            compilation.Expecting = ExpectOpenBracket;
+            compilation.CompileToken = ExpectOpenBracket;
         }
 
         private void ExpectOpenBracket(Compilation compilation, string token)
         {
             if (token.Is("(")) {
-                compilation.Expecting = ExpectingConstructorParameters;
+                compilation.CompileToken = ExpectingConstructorParameters;
             } else {
                 throw new Exception($"Expected ( but got {token}");
             }
@@ -36,7 +36,7 @@ namespace AutomationNodes.Core.Compile
         private void ExpectingConstructorParameters(Compilation compilation, string token)
         {
             if (token.Is(")")) {
-                compilation.Expecting = ExpectOpenBrace;
+                compilation.CompileToken = ExpectOpenBrace;
             }
         }
 
@@ -46,14 +46,14 @@ namespace AutomationNodes.Core.Compile
                 throw new Exception($"Expected ( but got {token}");
             }
 
-            compilation.Expecting = ExpectClassDefinition;
+            compilation.CompileToken = ExpectClassDefinition;
         }
 
         private void ExpectClassDefinition(Compilation compilation, string token)
         {
             if (token.Is("}")) {
                 CompileStatement(compilation);
-                compilation.Expecting = openingModule.Value.ExpectNothingInParticular;
+                compilation.CompileToken = openingModule.Value.ExpectNothingInParticular;
             }
         }
 

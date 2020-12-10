@@ -82,9 +82,9 @@ namespace AutomationNodesTests
                 var setFunctionModule = new SetFunctionModule(serviceProvider.Object);
                 var transitionFunctionModule = new TransitionFunctionModule(serviceProvider.Object);
                 var classModule = new ClassModule(serviceProvider.Object);
-                var commonModule = new OpeningModule(constructionModule, setFunctionModule, transitionFunctionModule, classModule);
-                serviceProvider.Setup(s => s.GetService(It.Is<Type>(t => t == typeof(IOpeningModule)))).Returns(commonModule);
-                SceneCompiler = new SceneCompiler(new ScriptTokenizer(), commonModule, constructionModule, setFunctionModule, transitionFunctionModule);
+                var openingModule = new OpeningModule(constructionModule, setFunctionModule, transitionFunctionModule, classModule);
+                serviceProvider.Setup(s => s.GetService(It.Is<Type>(t => t == typeof(IOpeningModule)))).Returns(openingModule);
+                SceneCompiler = new SceneCompiler(new ScriptTokenizer(), openingModule);
             }
         }
 

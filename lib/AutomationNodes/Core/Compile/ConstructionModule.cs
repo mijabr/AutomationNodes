@@ -8,7 +8,6 @@ namespace AutomationNodes.Core.Compile
         void ExpectVarName(Compilation compilation, string token);
         void ExpectTypeName(Compilation compilation, string token);
         void ExpectOpenBracket(Compilation compilation, string token);
-        void ExpectConstructorParameters(Compilation compilation, string token);
     }
 
     public class ConstructionModule : IConstructionModule
@@ -22,6 +21,9 @@ namespace AutomationNodes.Core.Compile
 
         private const string TypeName = "TypeName";
         private const string ConstructorParameters = "ConstructorParameters";
+        private readonly TokenParameters constructorTokenParameters = new TokenParameters {
+            Separators = new char[] { '(', ')', ',' }
+        };
 
         public void ExpectVarName(Compilation compilation, string token)
         {
@@ -29,7 +31,7 @@ namespace AutomationNodes.Core.Compile
             if (current.Variable == null) {
                 current.Variable = new Variable { Name = token };
                 compilation.Variables.Add(current.Variable.Name, current.Variable);
-                compilation.Expecting = ExpectAssignment;
+                compilation.CompileToken = ExpectAssignment;
             } else {
                 throw new Exception("variable already named");
             }
@@ -38,7 +40,7 @@ namespace AutomationNodes.Core.Compile
         private void ExpectAssignment(Compilation compilation, string token)
         {
             if (token == "=") {
-                compilation.Expecting = commonModule.Value.ExpectNothingInParticular;
+                compilation.CompileToken = commonModule.Value.ExpectNothingInParticular;
             } else {
                 throw new Exception($"Expected = but got {token}");
             }
@@ -47,7 +49,7 @@ namespace AutomationNodes.Core.Compile
         public void ExpectTypeName(Compilation compilation, string token)
         {
             compilation.AddState(TypeName, token);
-            compilation.Expecting = ExpectOpenBracket;
+            compilation.CompileToken = ExpectOpenBracket;
         }
 
         public void ExpectOpenBracket(Compilation compilation, string token)
@@ -57,14 +59,16 @@ namespace AutomationNodes.Core.Compile
             }
 
             compilation.AddState(ConstructorParameters, new List<string>());
-            compilation.Expecting = ExpectConstructorParameters;
+            compilation.TokenParameters.Push(constructorTokenParameters);
+            compilation.CompileToken = ExpectConstructorParameters;
         }
 
-        public void ExpectConstructorParameters(Compilation compilation, string token)
+        private void ExpectConstructorParameters(Compilation compilation, string token)
         {
             if (token == ")") {
                 CompileStatement(compilation);
-                compilation.Expecting = commonModule.Value.ExpectNothingInParticular;
+                compilation.TokenParameters.Pop();
+                compilation.CompileToken = commonModule.Value.ExpectNothingInParticular;
             } else if (token != ",") {
                 compilation.GetState<List<string>>(ConstructorParameters).Add(token);
             }

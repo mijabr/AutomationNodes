@@ -5,6 +5,12 @@ namespace AutomationNodes.Core.Compile
 {
     public class Compilation
     {
+        public Compilation(Action<Compilation, string> expecting, TokenParameters tokenParameters)
+        {
+            CompileToken = expecting;
+            TokenParameters.Push(tokenParameters);
+        }
+
         public void AddState<T>(string key, T value) => State.States.Add(key, value);
         public T GetState<T>(string key) => (T)State.States[key];
         public string GetState(string key) => (string)State.States[key];
@@ -13,15 +19,17 @@ namespace AutomationNodes.Core.Compile
 
         public State State { get; set; } = new State();
 
-        public Action<Compilation, string> Expecting { get; set; }
+        public Action<Compilation, string> CompileToken { get; set; }
 
-        public TimeSpan SceneTime { get; set; } = TimeSpan.Zero;
+        public Stack<TokenParameters> TokenParameters { get; set; } = new();
 
-        public Dictionary<string, Type> TypesLibrary = new Dictionary<string, Type>();
+        public TimeSpan SceneTime { get; set; }
 
-        public Dictionary<string, Variable> Variables { get; } = new Dictionary<string, Variable>();
+        public Dictionary<string, Type> TypesLibrary = new();
 
-        public List<CompiledStatement> CompiledStatements { get; set; } = new List<CompiledStatement>();
+        public Dictionary<string, Variable> Variables { get; } = new();
+
+        public List<CompiledStatement> CompiledStatements { get; set; } = new();
     }
 
     public class State
