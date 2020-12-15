@@ -27,32 +27,32 @@ namespace AutomationNodes.Core.Compile
         public void ExpectOpenBraket(Compilation compilation, string token)
         {
             compilation.TokenParameters.Push(setFunctiontokenParameters);
-            compilation.CompileToken = ExpectSetFunctionParameters;
+            compilation.TokenHandler = ExpectSetFunctionParameters;
         }
 
         private void ExpectSetFunctionParameters(Compilation compilation, string token)
         {
             if (token.Is(")")) {
                 compilation.TokenParameters.Pop();
-                compilation.CompileToken = openingModule.Value.ExpectNothingInParticular;
+                compilation.TokenHandler = openingModule.Value.ExpectNothingInParticular;
             } else if (token.Is("[") || token.Is(",")) {
-                compilation.CompileToken = ExpectSetFunctionParameterPropertyName;
+                compilation.TokenHandler = ExpectSetFunctionParameterPropertyName;
             } else if (token.Is("]")) {
             } else {
-                throw new Exception($"Expected set function parameter but got {token}");
+                throw new Exception($"Expected [ or ) but got {token}");
             }
         }
 
         private void ExpectSetFunctionParameterPropertyName(Compilation compilation, string token)
         {
             compilation.AddState(SetFunctionParameterName, token);
-            compilation.CompileToken = ExpectSetFunctionParameterPropertySeparator;
+            compilation.TokenHandler = ExpectSetFunctionParameterPropertySeparator;
         }
 
         private void ExpectSetFunctionParameterPropertySeparator(Compilation compilation, string token)
         {
             if (token.Is(":")) {
-                compilation.CompileToken = ExpectSetFunctionParameterPropertyValue;
+                compilation.TokenHandler = ExpectSetFunctionParameterPropertyValue;
             } else {
                 throw new Exception($"Expected : but got {token} after property name {compilation.GetState(SetFunctionParameterName)}");
             }
@@ -63,12 +63,12 @@ namespace AutomationNodes.Core.Compile
             compilation.AddState(SetFunctionParameterValue, token);
             CompileStatement(compilation);
             compilation.State = new State(compilation.State.Variable);
-            compilation.CompileToken = ExpectSetFunctionParameters;
+            compilation.TokenHandler = ExpectSetFunctionParameters;
         }
 
         private static void CompileStatement(Compilation compilation)
         {
-            compilation.CompiledStatements.Add(new SceneSetPropertyStatement {
+            compilation.StatementsOutput.Peek().Add(new SceneSetPropertyStatement {
                 TriggerAt = compilation.SceneTime + compilation.State.Variable.Duration,
                 NodeName = compilation.State.Variable.Name,
                 PropertyName = compilation.GetState(SetFunctionParameterName),

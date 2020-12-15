@@ -42,23 +42,26 @@ namespace AutomationNodes.Core.Compile
         {
             if (token.Is(";")) {
                 compilation.State = new State();
-            } else  if (token.Is("@")) {
-                compilation.CompileToken = ExpectOpenBracketForAt;
+            }  else if (token.Is("}")) {
+                compilation.TokenHandlers.Pop();
+                compilation.TokenHandler(compilation, token);
+            } else if (token.Is("@")) {
+                compilation.TokenHandler = ExpectOpenBracketForAt;
             } else if (token.IsKeyword("using")) {
-                compilation.CompileToken = ExpectUsing;
+                compilation.TokenHandler = ExpectUsing;
             } else if (token.IsKeyword("var")) {
-                compilation.CompileToken = constructionModule.ExpectVarName;
+                compilation.TokenHandler = constructionModule.ExpectVarName;
             } else if (token.IsKeyword("class")) {
-                compilation.CompileToken = classModule.ExpectClassName;
+                compilation.TokenHandler = classModule.ExpectClassName;
             } else if (token == ".") {
                 compilation.State = new State(compilation.State.Variable);
-                compilation.CompileToken = ExpectFunctionName;
+                compilation.TokenHandler = ExpectFunctionName;
             } else if (token == "//") {
                 compilation.TokenParameters.Push(commentParameters);
-                compilation.CompileToken = ExpectCommentEnd;
+                compilation.TokenHandler = ExpectCommentEnd;
             } else {
                 compilation.AddState(OpeningToken, token);
-                compilation.CompileToken = ExpectConstructorOpenBracketOrDot;
+                compilation.TokenHandler = ExpectConstructorOpenBracketOrDot;
             }
         }
 
@@ -70,7 +73,7 @@ namespace AutomationNodes.Core.Compile
             } catch (FileNotFoundException x) {
                 ScanAssemblyForNodes(compilation, Assembly.LoadFrom(token));
             }
-            compilation.CompileToken = ExpectNothingInParticular;
+            compilation.TokenHandler = ExpectNothingInParticular;
         }
 
         private void ExpectConstructorOpenBracketOrDot(Compilation compilation, string token)
@@ -86,7 +89,7 @@ namespace AutomationNodes.Core.Compile
                 constructionModule.ExpectOpenBracket(compilation, token);
             } else if (token.Is(".")) {
                 current.Variable = compilation.Variables[compilation.GetState(OpeningToken)];
-                compilation.CompileToken = ExpectFunctionName;
+                compilation.TokenHandler = ExpectFunctionName;
             } else {
                 throw new Exception($"Expected . or ( after {compilation.GetState(OpeningToken)}");
             }
@@ -95,7 +98,7 @@ namespace AutomationNodes.Core.Compile
         private void ExpectOpenBracketForAt(Compilation compilation, string token)
         {
             if (token.Is("(")) {
-                compilation.CompileToken = ExpectAtParameter;
+                compilation.TokenHandler = ExpectAtParameter;
             } else {
                 throw new Exception($"Expected ( but got {token}");
             }
@@ -104,13 +107,13 @@ namespace AutomationNodes.Core.Compile
         private void ExpectAtParameter(Compilation compilation, string token)
         {
             compilation.SceneTime = token.ToTimeSpan();
-            compilation.CompileToken = ExpectCloseBracket;
+            compilation.TokenHandler = ExpectCloseBracket;
         }
 
         private void ExpectCloseBracket(Compilation compilation, string token)
         {
             if (token.Is(")")) {
-                compilation.CompileToken = ExpectNothingInParticular;
+                compilation.TokenHandler = ExpectNothingInParticular;
             } else {
                 throw new Exception($"Expected ) but got {token}");
             }
@@ -120,14 +123,14 @@ namespace AutomationNodes.Core.Compile
         {
             if (token.Is("\r")) {
                 compilation.TokenParameters.Pop();
-                compilation.CompileToken = ExpectNothingInParticular;
+                compilation.TokenHandler = ExpectNothingInParticular;
             }
         }
 
         private void ExpectFunctionName(Compilation compilation, string token)
         {
             compilation.AddState(FunctionName, token);
-            compilation.CompileToken = ExpectFunctionOpenBracket;
+            compilation.TokenHandler = ExpectFunctionOpenBracket;
         }
 
         public void ExpectFunctionOpenBracket(Compilation compilation, string token)
@@ -140,7 +143,7 @@ namespace AutomationNodes.Core.Compile
             } else if (compilation.IsState(FunctionName, "transition")) {
                 transitionFunctionModule.ExpectOpenBraket(compilation, token);
             } else if (compilation.IsState(FunctionName, "wait")) {
-                compilation.CompileToken = ExpectWaitFunctionParameters;
+                compilation.TokenHandler = ExpectWaitFunctionParameters;
             } else {
                 throw new Exception($"Unknown function {compilation.GetState(FunctionName)}");
             }
@@ -149,7 +152,7 @@ namespace AutomationNodes.Core.Compile
         public void ExpectWaitFunctionParameters(Compilation compilation, string token)
         {
             compilation.State.Variable.Duration += token.ToTimeSpan();
-            compilation.CompileToken = ExpectCloseBracket;
+            compilation.TokenHandler = ExpectCloseBracket;
         }
 
         public void ScanAssemblyForNodes(Compilation compilation, Assembly assembly)

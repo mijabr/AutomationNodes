@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace AutomationNodes.Core.Compile
 {
@@ -17,17 +18,24 @@ namespace AutomationNodes.Core.Compile
         }
 
         private const string ClassName = "ClassName";
+        private const string ConstructorParameters = "ConstructorParameters";
+        private const string Statements = "Statements";
+        private readonly TokenParameters constructorTokenParameters = new TokenParameters {
+            Separators = new char[] { '(', ')', ',' }
+        };
 
         public void ExpectClassName(Compilation compilation, string token)
         {
             compilation.AddState(ClassName, token);
-            compilation.CompileToken = ExpectOpenBracket;
+            compilation.TokenHandler = ExpectOpenBracket;
         }
 
         private void ExpectOpenBracket(Compilation compilation, string token)
         {
             if (token.Is("(")) {
-                compilation.CompileToken = ExpectingConstructorParameters;
+                compilation.AddState<List<string>>(ConstructorParameters, new List<string>());
+                compilation.TokenParameters.Push(constructorTokenParameters);
+                compilation.TokenHandler = ExpectingConstructorParameters;
             } else {
                 throw new Exception($"Expected ( but got {token}");
             }
@@ -36,7 +44,10 @@ namespace AutomationNodes.Core.Compile
         private void ExpectingConstructorParameters(Compilation compilation, string token)
         {
             if (token.Is(")")) {
-                compilation.CompileToken = ExpectOpenBrace;
+                compilation.TokenParameters.Pop();
+                compilation.TokenHandler = ExpectOpenBrace;
+            } else if (!token.Is(",")) {
+                compilation.GetState<List<string>>(ConstructorParameters).Add(token.Trim());
             }
         }
 
@@ -46,22 +57,29 @@ namespace AutomationNodes.Core.Compile
                 throw new Exception($"Expected ( but got {token}");
             }
 
-            compilation.CompileToken = ExpectClassDefinition;
+            compilation.States.Push(new State());
+            compilation.StatementsOutput.Push(new List<CompiledStatement>());
+            compilation.TokenHandler = ExpectClassDefinition;
+            compilation.TokenHandlers.Push(openingModule.Value.ExpectNothingInParticular);
         }
 
         private void ExpectClassDefinition(Compilation compilation, string token)
         {
             if (token.Is("}")) {
+                compilation.States.Pop();
+                compilation.AddState(Statements, compilation.StatementsOutput.Pop());
                 CompileStatement(compilation);
-                compilation.CompileToken = openingModule.Value.ExpectNothingInParticular;
+                compilation.TokenHandler = openingModule.Value.ExpectNothingInParticular;
             }
         }
 
         private void CompileStatement(Compilation compilation)
         {
-            compilation.CompiledStatements.Add(new SceneClassStatement {
-                ClassName = compilation.GetState(ClassName)
-            }); ;
+            compilation.StatementsOutput.Peek().Add(new SceneClassStatement {
+                ClassName = compilation.GetState(ClassName),
+                ConstructorParameters = compilation.GetState<List<string>>(ConstructorParameters).ToArray(),
+                Statements = compilation.GetState<List<CompiledStatement>>(Statements)
+            });
 
             compilation.State = new State();
         }

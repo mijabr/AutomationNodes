@@ -30,11 +30,11 @@ namespace AutomationNodes.Core.Compile
             var tokenContext = scriptTokenizer.Tokenize(script);
             var token = tokenContext.NextToken(compilation.TokenParameters.Peek());
             while (token != null) {
-                compilation.CompileToken(compilation, token);
+                compilation.TokenHandler(compilation, token);
                 token = tokenContext.NextToken(compilation.TokenParameters.Peek());
             }
 
-            return compilation.CompiledStatements;
+            return compilation.Statements;
         }
 
         private readonly TokenParameters tokenParameters = new TokenParameters {

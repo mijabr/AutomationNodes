@@ -7,8 +7,10 @@ namespace AutomationNodes.Core.Compile
     {
         public Compilation(Action<Compilation, string> expecting, TokenParameters tokenParameters)
         {
-            CompileToken = expecting;
+            State = new State();
+            TokenHandler = expecting;
             TokenParameters.Push(tokenParameters);
+            StatementsOutput.Push(Statements);
         }
 
         public void AddState<T>(string key, T value) => State.States.Add(key, value);
@@ -17,11 +19,35 @@ namespace AutomationNodes.Core.Compile
         internal void RemoveState(string key) => State.States.Remove(key);
         public bool IsState(string key, string value) => ((string)State.States[key]).Is(value);
 
-        public State State { get; set; } = new State();
+        public State State
+        {
+            get => States.Peek();
+            set {
+                if (States.Count > 0) {
+                    States.Pop();
+                }
+                States.Push(value);
+            }
+        }
 
-        public Action<Compilation, string> CompileToken { get; set; }
+        public Stack<State> States { get; set; } = new();
+
+        public Stack<Action<Compilation, string>> TokenHandlers { get; set; } = new();
+
+        public Action<Compilation, string> TokenHandler
+        {
+            get => TokenHandlers.Peek();
+            set {
+                if (TokenHandlers.Count > 0) {
+                    TokenHandlers.Pop();
+                }
+                TokenHandlers.Push(value);
+            }
+        }
 
         public Stack<TokenParameters> TokenParameters { get; set; } = new();
+
+        public Stack<List<CompiledStatement>> StatementsOutput { get; set; } = new();
 
         public TimeSpan SceneTime { get; set; }
 
@@ -29,7 +55,7 @@ namespace AutomationNodes.Core.Compile
 
         public Dictionary<string, Variable> Variables { get; } = new();
 
-        public List<CompiledStatement> CompiledStatements { get; set; } = new();
+        public List<CompiledStatement> Statements { get; set; } = new();
     }
 
     public class State
@@ -78,5 +104,7 @@ namespace AutomationNodes.Core.Compile
     public class SceneClassStatement : CompiledStatement
     {
         public string ClassName { get; set; }
+        public string[] ConstructorParameters { get; set; }
+        public List<CompiledStatement> Statements { get; set; }
     }
 }

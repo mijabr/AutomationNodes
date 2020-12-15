@@ -29,7 +29,7 @@ namespace AutomationNodes.Core.Compile
         {
             compilation.AddState(TransitionParameters, new Dictionary<string, string>());
             compilation.TokenParameters.Push(transitionFunctiontokenParameters);
-            compilation.CompileToken = ExpectTransitionFunctionParameters;
+            compilation.TokenHandler = ExpectTransitionFunctionParameters;
         }
 
         private void ExpectTransitionFunctionParameters(Compilation compilation, string token)
@@ -40,9 +40,9 @@ namespace AutomationNodes.Core.Compile
                 compilation.State = new State();
                 compilation.State.Variable = current.Variable;
                 compilation.TokenParameters.Pop();
-                compilation.CompileToken = openingModule.Value.ExpectNothingInParticular;
+                compilation.TokenHandler = openingModule.Value.ExpectNothingInParticular;
             } else if (token.Is("[") || token.Is(",")) {
-                compilation.CompileToken = ExpectTransitionFunctionParameterPropertyName;
+                compilation.TokenHandler = ExpectTransitionFunctionParameterPropertyName;
             } else if (token.Is("]")) {
             } else {
                 throw new Exception($"Expected transition function parameter but got {token}");
@@ -52,13 +52,13 @@ namespace AutomationNodes.Core.Compile
         private void ExpectTransitionFunctionParameterPropertyName(Compilation compilation, string token)
         {
             compilation.AddState(TransitionFunctionParameterName, token);
-            compilation.CompileToken = ExpectTransitionFunctionParameterPropertySeparator;
+            compilation.TokenHandler = ExpectTransitionFunctionParameterPropertySeparator;
         }
 
         private void ExpectTransitionFunctionParameterPropertySeparator(Compilation compilation, string token)
         {
             if (token.Is(":")) {
-                compilation.CompileToken = ExpectTransitionFunctionParameterPropertyValue;
+                compilation.TokenHandler = ExpectTransitionFunctionParameterPropertyValue;
             } else {
                 throw new Exception($"Expected : but got {token} after property name {compilation.GetState(TransitionFunctionParameterName)}");
             }
@@ -73,13 +73,13 @@ namespace AutomationNodes.Core.Compile
             }
 
             compilation.RemoveState(TransitionFunctionParameterName);
-            compilation.CompileToken = ExpectTransitionFunctionParameters;
+            compilation.TokenHandler = ExpectTransitionFunctionParameters;
         }
 
         private static void CompileStatement(Compilation compilation)
         {
             var duration = TimeSpan.FromMilliseconds(int.Parse(compilation.GetState(Duration)));
-            compilation.CompiledStatements.Add(new SceneSetTransitionStatement {
+            compilation.StatementsOutput.Peek().Add(new SceneSetTransitionStatement {
                 TriggerAt = compilation.SceneTime + compilation.State.Variable.Duration,
                 NodeName = compilation.State.Variable.Name,
                 TransitionProperties = compilation.GetState<Dictionary<string, string>>(TransitionParameters),

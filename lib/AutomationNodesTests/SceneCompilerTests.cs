@@ -61,11 +61,12 @@ namespace AutomationNodesTests
             }, opt => opt.Excluding(su => su.NodeName));
         }
 
-        public static void ShouldBeClassStatement(this CompiledStatement sceneStatement, string className)
+        public static void ShouldBeClassStatement(this CompiledStatement sceneStatement, string className, string[] constructorParameters = null)
         {
             sceneStatement.Should().BeEquivalentTo(new SceneClassStatement {
-                ClassName = className
-            });
+                ClassName = className,
+                ConstructorParameters = constructorParameters ?? new string[0]
+            }, opt => opt.Excluding(su => su.Statements));
         }
     }
 
@@ -401,7 +402,7 @@ namespace AutomationNodesTests
         }
 
         [Test]
-        public void Run_ShouldCreateCustomerNode_GivenClass()
+        public void Run_ShouldCreateClassStatement_GivenClassDefinition()
         {
             var state = new TestState();
             const string script = @"
@@ -413,15 +414,66 @@ namespace AutomationNodesTests
             events[0].ShouldBeClassStatement("Bird");
         }
 
+        [Test]
+        public void Run_ShouldCreateClassStatementWithConstructorParameters_GivenClassDefinition()
+        {
+            var state = new TestState();
+            const string script = @"
+            class Bird(width,height) {
+            };";
+
+            var events = state.SceneCompiler.Compile(script);
+
+            events.Count.Should().Be(1);
+            events[0].ShouldBeClassStatement("Bird", new[] { "width", "height" });
+        }
+
+        [Test]
+        public void Run_ShouldCreateClassStatementWithConstructorParametersAndWhiteSpace_GivenClassDefinition()
+        {
+            var state = new TestState();
+            const string script = @"
+            class Bird(width, height) {
+            };";
+
+            var events = state.SceneCompiler.Compile(script);
+
+            events.Count.Should().Be(1);
+            events[0].ShouldBeClassStatement("Bird", new[] { "width", "height" });
+        }
+
+        [Test]
+        public void Run_ShouldCreateClassStatementWithClssBody_GivenClassDefinition()
+        {
+            var state = new TestState();
+            const string script = @"
+            class Bird(width,height) {
+                var body = Image(assets/flying-bird-body.png,%width%,%height%).set([z-index:1]);
+                var leftWing = Image(assets/flying-bird-left-wing.png,%width%,%height%);
+                var rightWing = Image(assets/flying-bird-right-wing.png,%width%,%height%);
+            };";
+
+            var events = state.SceneCompiler.Compile(script);
+
+            events.Count.Should().Be(1);
+            events[0].ShouldBeClassStatement("Bird", new[] { "width", "height" });
+            (events[0] as SceneClassStatement).Statements.Should().BeEquivalentTo(new List<CompiledStatement> {
+                new SceneCreateStatement { NodeName = "body", Parameters = new[] { "assets/flying-bird-body.png", "%width%", "%height%" } },
+                new SceneSetPropertyStatement { NodeName = "body", PropertyName = "z-index", PropertyValue = "1" },
+                new SceneCreateStatement { NodeName = "leftWing", Parameters = new[] { "assets/flying-bird-left-wing.png", "%width%", "%height%" } },
+                new SceneCreateStatement { NodeName = "rightWing", Parameters = new[] { "assets/flying-bird-right-wing.png", "%width%", "%height%" } },
+            });
+        }
+
         //[Test]
         public void Run_ShouldCreateCustomNodes_GivenNodeDefinition()
         {
             var state = new TestState();
             const string script = @"
-            class Bird(width, height) : Div {
-                body = Image(assets/flying-bird-body.png,%width%,%height%).set({z-index:1});
-                leftWing = Image(assets/flying-bird-left-wing.png,%width%,%height%);
-                rightWing = Image(assets/flying-bird-right-wing.png,%width%,%height%);
+            class Bird(width, height) {
+                var body = Image(assets/flying-bird-body.png,%width%,%height%).set([z-index:1]);
+                var leftWing = Image(assets/flying-bird-left-wing.png,%width%,%height%);
+                var rightWing = Image(assets/flying-bird-right-wing.png,%width%,%height%);
                 flap(duration) {
                     leftWing.transition([transform:rotate(-80deg)]);
                     rightWing.transition([transform:rotate(80deg)]);

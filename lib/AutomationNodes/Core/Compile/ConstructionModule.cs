@@ -31,7 +31,7 @@ namespace AutomationNodes.Core.Compile
             if (current.Variable == null) {
                 current.Variable = new Variable { Name = token };
                 compilation.Variables.Add(current.Variable.Name, current.Variable);
-                compilation.CompileToken = ExpectAssignment;
+                compilation.TokenHandler = ExpectAssignment;
             } else {
                 throw new Exception("variable already named");
             }
@@ -40,7 +40,7 @@ namespace AutomationNodes.Core.Compile
         private void ExpectAssignment(Compilation compilation, string token)
         {
             if (token == "=") {
-                compilation.CompileToken = commonModule.Value.ExpectNothingInParticular;
+                compilation.TokenHandler = commonModule.Value.ExpectNothingInParticular;
             } else {
                 throw new Exception($"Expected = but got {token}");
             }
@@ -49,7 +49,7 @@ namespace AutomationNodes.Core.Compile
         public void ExpectTypeName(Compilation compilation, string token)
         {
             compilation.AddState(TypeName, token);
-            compilation.CompileToken = ExpectOpenBracket;
+            compilation.TokenHandler = ExpectOpenBracket;
         }
 
         public void ExpectOpenBracket(Compilation compilation, string token)
@@ -60,7 +60,7 @@ namespace AutomationNodes.Core.Compile
 
             compilation.AddState(ConstructorParameters, new List<string>());
             compilation.TokenParameters.Push(constructorTokenParameters);
-            compilation.CompileToken = ExpectConstructorParameters;
+            compilation.TokenHandler = ExpectConstructorParameters;
         }
 
         private void ExpectConstructorParameters(Compilation compilation, string token)
@@ -68,7 +68,7 @@ namespace AutomationNodes.Core.Compile
             if (token == ")") {
                 CompileStatement(compilation);
                 compilation.TokenParameters.Pop();
-                compilation.CompileToken = commonModule.Value.ExpectNothingInParticular;
+                compilation.TokenHandler = commonModule.Value.ExpectNothingInParticular;
             } else if (token != ",") {
                 compilation.GetState<List<string>>(ConstructorParameters).Add(token);
             }
@@ -80,7 +80,7 @@ namespace AutomationNodes.Core.Compile
                 throw new Exception($"Unknown node type '{compilation.GetState(TypeName)}'. Are you missing a using?");
             }
 
-            compilation.CompiledStatements.Add(new SceneCreateStatement {
+            compilation.StatementsOutput.Peek().Add(new SceneCreateStatement {
                 TriggerAt = compilation.SceneTime,
                 NodeName = compilation.State.Variable.Name,
                 Type = type,
