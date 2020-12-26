@@ -27,6 +27,28 @@ namespace AutomationNodesTests
             (sceneStatement as SceneCreateStatement).NodeName.Should().NotBeNullOrEmpty();
         }
 
+        public static void ShouldBeCreateFromClassStatement(this CompiledStatement sceneStatement, string className, Type type, TimeSpan triggerAt, params string[] parameters)
+        {
+            sceneStatement.Should().BeEquivalentTo(
+                new SceneCreateStatement { Class = className, Type = type, Parameters = parameters, TriggerAt = triggerAt },
+                opt => opt.Excluding(su => su.NodeName)
+            );
+        }
+
+        public static void ShouldBeCreateFromClassStatement(this CompiledStatement sceneStatement, string nodeName, string className, Type type, TimeSpan triggerAt, params string[] parameters)
+        {
+            sceneStatement.Should().BeEquivalentTo(
+                new SceneCreateStatement { NodeName = nodeName, Class = className, Type = type, Parameters = parameters, TriggerAt = triggerAt }
+            );
+        }
+
+        public static void ShouldBeCreateChildStatement(this CompiledStatement sceneStatement, string nodeName, string parentNodeName, Type type, TimeSpan triggerAt, params string[] parameters)
+        {
+            sceneStatement.Should().BeEquivalentTo(
+                new SceneCreateStatement { NodeName = nodeName, ParentNodeName = parentNodeName, Type = type, Parameters = parameters, TriggerAt = triggerAt }
+            );
+        }
+
         public static void ShouldBeSetPropertyStatement(this CompiledStatement sceneStatement, string nodeName, string propertyName, string propertyValue, TimeSpan triggerAt)
         {
             sceneStatement.Should().BeEquivalentTo(new SceneSetPropertyStatement {
@@ -59,14 +81,6 @@ namespace AutomationNodesTests
                 Duration = duration,
                 TriggerAt = triggerAt
             }, opt => opt.Excluding(su => su.NodeName));
-        }
-
-        public static void ShouldBeClassStatement(this CompiledStatement sceneStatement, string className, string[] constructorParameters = null)
-        {
-            sceneStatement.Should().BeEquivalentTo(new SceneClassStatement {
-                ClassName = className,
-                ConstructorParameters = constructorParameters ?? new string[0]
-            }, opt => opt.Excluding(su => su.Statements));
         }
     }
 
@@ -406,12 +420,14 @@ namespace AutomationNodesTests
         {
             var state = new TestState();
             const string script = @"
-            class Bird() { };";
+            class Bird() {};
+            Bird();
+            ";
 
             var events = state.SceneCompiler.Compile(script);
 
             events.Count.Should().Be(1);
-            events[0].ShouldBeClassStatement("Bird");
+            events[0].ShouldBeCreateFromClassStatement("Bird", typeof(GenericNode), TimeSpan.Zero, new string [0]);
         }
 
         [Test]
@@ -419,13 +435,14 @@ namespace AutomationNodesTests
         {
             var state = new TestState();
             const string script = @"
-            class Bird(width,height) {
-            };";
+            class Bird(width,height) {};
+            Bird(100px);
+            ";
 
             var events = state.SceneCompiler.Compile(script);
 
             events.Count.Should().Be(1);
-            events[0].ShouldBeClassStatement("Bird", new[] { "width", "height" });
+            events[0].ShouldBeCreateFromClassStatement("Bird", typeof(GenericNode), TimeSpan.Zero, new[] { "100px" });
         }
 
         [Test]
@@ -433,17 +450,18 @@ namespace AutomationNodesTests
         {
             var state = new TestState();
             const string script = @"
-            class Bird(width, height) {
-            };";
+            class Bird(width, height) { }
+            Bird( 100px, 200px );
+            ";
 
             var events = state.SceneCompiler.Compile(script);
 
             events.Count.Should().Be(1);
-            events[0].ShouldBeClassStatement("Bird", new[] { "width", "height" });
+            events[0].ShouldBeCreateFromClassStatement("Bird", typeof(GenericNode), TimeSpan.Zero, new[] { "100px", "200px" });
         }
 
         [Test]
-        public void Run_ShouldCreateClassStatementWithClssBody_GivenClassDefinition()
+        public void Run_ShouldCreateGenericNodeWithChildNodes_GivenClassUsage()
         {
             var state = new TestState();
             const string script = @"
@@ -451,18 +469,43 @@ namespace AutomationNodesTests
                 var body = Image(assets/flying-bird-body.png,%width%,%height%).set([z-index:1]);
                 var leftWing = Image(assets/flying-bird-left-wing.png,%width%,%height%);
                 var rightWing = Image(assets/flying-bird-right-wing.png,%width%,%height%);
-            };";
+            };
+            var myBird = Bird(100px,200px);
+            ";
 
             var events = state.SceneCompiler.Compile(script);
 
-            events.Count.Should().Be(1);
-            events[0].ShouldBeClassStatement("Bird", new[] { "width", "height" });
-            (events[0] as SceneClassStatement).Statements.Should().BeEquivalentTo(new List<CompiledStatement> {
-                new SceneCreateStatement { NodeName = "body", Parameters = new[] { "assets/flying-bird-body.png", "%width%", "%height%" } },
-                new SceneSetPropertyStatement { NodeName = "body", PropertyName = "z-index", PropertyValue = "1" },
-                new SceneCreateStatement { NodeName = "leftWing", Parameters = new[] { "assets/flying-bird-left-wing.png", "%width%", "%height%" } },
-                new SceneCreateStatement { NodeName = "rightWing", Parameters = new[] { "assets/flying-bird-right-wing.png", "%width%", "%height%" } },
-            });
+            events.Count.Should().Be(5);
+            events[0].ShouldBeCreateFromClassStatement("myBird", "Bird", typeof(GenericNode), TimeSpan.Zero, new[] { "100px", "200px" });
+            events[1].ShouldBeCreateChildStatement("myBird.body", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-body.png", "100px", "200px" });
+            events[2].ShouldBeSetPropertyStatement("myBird.body", "z-index", "1", TimeSpan.Zero);
+            events[3].ShouldBeCreateChildStatement("myBird.leftWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-left-wing.png", "100px", "200px" });
+            events[4].ShouldBeCreateChildStatement("myBird.rightWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-right-wing.png", "100px", "200px" });
+        }
+
+        [Test]
+        public void Run_ShouldSetProprertyForGenericNode_GivenClassUsage()
+        {
+            var state = new TestState();
+            const string script = @"
+            class Bird(width,height) {
+                var body = Image(assets/flying-bird-body.png,%width%,%height%).set([z-index:1]);
+                var leftWing = Image(assets/flying-bird-left-wing.png,%width%,%height%);
+                var rightWing = Image(assets/flying-bird-right-wing.png,%width%,%height%);
+            };
+            var myBird = Bird(100px,200px).set([left:500px,top:300px]);
+            ";
+
+            var events = state.SceneCompiler.Compile(script);
+
+            events.Count.Should().Be(7);
+            events[0].ShouldBeCreateFromClassStatement("myBird", "Bird", typeof(GenericNode), TimeSpan.Zero, new[] { "100px", "200px" });
+            events[1].ShouldBeCreateChildStatement("myBird.body", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-body.png", "100px", "200px" });
+            events[2].ShouldBeSetPropertyStatement("myBird.body", "z-index", "1", TimeSpan.Zero);
+            events[3].ShouldBeCreateChildStatement("myBird.leftWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-left-wing.png", "100px", "200px" });
+            events[4].ShouldBeCreateChildStatement("myBird.rightWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-right-wing.png", "100px", "200px" });
+            events[5].ShouldBeSetPropertyStatement("myBird", "left", "500px", TimeSpan.Zero);
+            events[6].ShouldBeSetPropertyStatement("myBird", "top", "300px", TimeSpan.Zero);
         }
 
         //[Test]

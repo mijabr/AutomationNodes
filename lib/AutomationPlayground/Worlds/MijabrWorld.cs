@@ -7,12 +7,12 @@ namespace AutomationPlayground.Worlds
     {
         private readonly INodeCommander nodeCommander;
         private readonly MijabrScene mijabrScene;
-        private readonly RocketElephantScene birdFlyAttemptScene;
+        private readonly BirdFlyAttemptScene birdFlyAttemptScene;
 
         public MijabrWorld(
             INodeCommander nodeCommander,
             MijabrScene mijabrScene,
-            RocketElephantScene birdFlyAttemptScene)
+            BirdFlyAttemptScene birdFlyAttemptScene)
         {
             this.nodeCommander = nodeCommander;
             this.mijabrScene = mijabrScene;

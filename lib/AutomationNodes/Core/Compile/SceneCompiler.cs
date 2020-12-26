@@ -39,7 +39,7 @@ namespace AutomationNodes.Core.Compile
 
         private readonly TokenParameters tokenParameters = new TokenParameters {
             SplitByWhitespace = true,
-            Separators = new char[] { '(', '=', ';', '.', ')' },
+            Separators = new char[] { '(', '=', ';', '.', ')', '{', '}' },
             TokenStrings = new string[] { "//" }
         };
     }

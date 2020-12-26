@@ -1,5 +1,7 @@
-﻿using System;
+﻿using AutomationNodes.Nodes;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace AutomationNodes.Core.Compile
 {
@@ -70,22 +72,50 @@ namespace AutomationNodes.Core.Compile
                 compilation.TokenParameters.Pop();
                 compilation.TokenHandler = commonModule.Value.ExpectNothingInParticular;
             } else if (token != ",") {
-                compilation.GetState<List<string>>(ConstructorParameters).Add(token);
+                compilation.GetState<List<string>>(ConstructorParameters).Add(token.Trim());
             }
         }
 
         private static void CompileStatement(Compilation compilation)
         {
-            if (!compilation.TypesLibrary.TryGetValue(compilation.GetState(TypeName), out var type)) {
+            Type type = null;
+            compilation.Classes.TryGetValue(compilation.GetState(TypeName), out var nodeClass);
+            if (nodeClass != null) {
+                type = typeof(GenericNode);
+            } else {
+                type = compilation.TypesLibrary.TryGetValue(compilation.GetState(TypeName), out var t) ? t : null;
+            }
+
+            if (type == null) {
                 throw new Exception($"Unknown node type '{compilation.GetState(TypeName)}'. Are you missing a using?");
             }
 
+            var variableName = compilation.State.Variable.Name;
+            var constructorParameters = compilation.GetState<List<string>>(ConstructorParameters);
+
             compilation.StatementsOutput.Peek().Add(new SceneCreateStatement {
                 TriggerAt = compilation.SceneTime,
-                NodeName = compilation.State.Variable.Name,
+                NodeName = variableName,
+                Class = nodeClass?.ClassName,
                 Type = type,
-                Parameters = compilation.GetState<List<string>>(ConstructorParameters).ToArray()
+                Parameters = constructorParameters.ToArray()
             });
+
+            if (nodeClass != null) {
+                foreach (var statement in nodeClass.Statements) {
+                    var parameterValues = nodeClass.ConstructorParameters.Select((p, index) => new KeyValuePair<string, string>($"%{p}%", constructorParameters[index])).ToDictionary();
+                    compilation.StatementsOutput.Peek().Add(statement.GenerateClassInstanceStatement(variableName, parameterValues));
+                }
+            }
         }
     }
+
+    public static class KeyValuePairExtensions
+    {
+        public static Dictionary<TK, TV> ToDictionary<TK, TV>(this IEnumerable<KeyValuePair<TK, TV>> keyValuePairs)
+        {
+            return keyValuePairs.ToDictionary(kv => kv.Key, kv => kv.Value);
+        }
+    }
+
 }

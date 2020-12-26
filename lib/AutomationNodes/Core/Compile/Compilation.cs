@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace AutomationNodes.Core.Compile
 {
@@ -53,9 +54,12 @@ namespace AutomationNodes.Core.Compile
 
         public Dictionary<string, Type> TypesLibrary = new();
 
+        public Dictionary<string, Class> Classes = new();
+
         public Dictionary<string, Variable> Variables { get; } = new();
 
         public List<CompiledStatement> Statements { get; set; } = new();
+        public string ParentNodeName { get; internal set; }
     }
 
     public class State
@@ -67,18 +71,27 @@ namespace AutomationNodes.Core.Compile
         public Variable Variable { get; set; }
     }
 
+    public class Class
+    {
+        public string ClassName { get; set; }
+        public string[] ConstructorParameters { get; set; }
+        public List<CompiledStatement> Statements { get; set; }
+    }
+
     public class Variable
     {
         public string Name { get; set; }
         public TimeSpan Duration { get; set; }
     }
 
-    public class CompiledStatement
+    public abstract class CompiledStatement
     {
         public TimeSpan TriggerAt { get; set; }
+
+        public abstract CompiledStatement GenerateClassInstanceStatement(string variableName, Dictionary<string, string> parameterValues);
     }
 
-    public class SceneNodeStatement : CompiledStatement
+    public abstract class SceneNodeStatement : CompiledStatement
     {
         public string NodeName { get; set; }
     }
@@ -86,25 +99,52 @@ namespace AutomationNodes.Core.Compile
     public class SceneCreateStatement : SceneNodeStatement
     {
         public Type Type { get; set; }
+        public string Class { get; set; }
         public string[] Parameters { get; set; }
+        public string ParentNodeName { get; set; }
+
+        public override CompiledStatement GenerateClassInstanceStatement(string variableName, Dictionary<string, string> parameterValues)
+        {
+            return new SceneCreateStatement {
+                TriggerAt = TriggerAt,
+                NodeName = $"{variableName}.{NodeName}",
+                Type = Type,
+                Class = Class,
+                Parameters = Parameters.Select(p => parameterValues.TryGetValue(p, out var value) ? value : p).ToArray(),
+                ParentNodeName = variableName,
+            };
+        }
     }
 
     public class SceneSetPropertyStatement : SceneNodeStatement
     {
         public string PropertyName { get; set; }
         public string PropertyValue { get; set; }
+
+        public override CompiledStatement GenerateClassInstanceStatement(string variableName, Dictionary<string, string> parameterValues)
+        {
+            return new SceneSetPropertyStatement {
+                TriggerAt = TriggerAt,
+                NodeName = $"{variableName}.{NodeName}",
+                PropertyName = PropertyName,
+                PropertyValue = parameterValues.TryGetValue(PropertyValue, out var value) ? value : PropertyValue
+            };
+        }
     }
 
     public class SceneSetTransitionStatement : SceneNodeStatement
     {
         public Dictionary<string, string> TransitionProperties { get; set; }
         public TimeSpan Duration { get; set; }
-    }
 
-    public class SceneClassStatement : CompiledStatement
-    {
-        public string ClassName { get; set; }
-        public string[] ConstructorParameters { get; set; }
-        public List<CompiledStatement> Statements { get; set; }
+        public override CompiledStatement GenerateClassInstanceStatement(string variableName, Dictionary<string, string> parameterValues)
+        {
+            return new SceneSetTransitionStatement {
+                TriggerAt = TriggerAt,
+                NodeName = $"{variableName}.{NodeName}",
+                TransitionProperties = TransitionProperties.Select(p => new KeyValuePair<string, string>(p.Key, parameterValues.TryGetValue(p.Value, out var value) ? value : p.Value)).ToDictionary(),
+                Duration = Duration
+            };
+        }
     }
 }

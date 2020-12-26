@@ -1,6 +1,7 @@
 ﻿using AutomationNodes.Core.Compile;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace AutomationNodes.Core
 {
@@ -33,67 +34,90 @@ namespace AutomationNodes.Core
             Run(sceneCompiler.Compile(script), connectionId);
         }
 
+        private class GenericNodeClass
+        {
+            public string ClassName { get; set; }
+            public string[] ConstructorParameters { get; set; }
+            public List<CompiledStatement> Statements { get; set; }
+        }
+
         private class RunState
         {
             public string ConnectionId { get; set; }
-            public Dictionary<string, INode> NodeVariables { get; } = new Dictionary<string, INode>();
+            private Dictionary<string, INode> NodeVariables { get; } = new();
+            public void AddNodeVariable(string nodeName, INode node) => NodeVariables[VariableContext(nodeName)] = node;
+            public INode GetNodeVariable(string nodeName) => NodeVariables[VariableContext(nodeName)];
+            public Dictionary<string, GenericNodeClass> NodeClasses { get; } = new();
             public CompiledStatement CurrentEvent { get; set; }
+            public string CurrentClassVariableName { get; set; }
+            private string VariableContext(string variableName) => CurrentClassVariableName != null
+                ? $"{CurrentClassVariableName}.variableName"
+                : variableName;
         }
 
-        private void Run(List<CompiledStatement> events, string connectionId)
+        private void Run(IEnumerable<CompiledStatement> events, string connectionId)
         {
             var runState = new RunState { ConnectionId = connectionId };
-            events.ForEach(e => {
+            foreach(var e in events) {
                 runState.CurrentEvent = e;
-                FireEvent(runState);
-            });
+                RunStatement(runState);
+            };
         }
 
-        private void FireEvent(RunState runState)
+        private void RunStatement(RunState runState)
         {
-            if (runState.CurrentEvent.TriggerAt == TimeSpan.Zero)
-            {
-                BuildEventAction(runState).Invoke();
-            }
-            else
-            {
-                AddFutureEvent(BuildEventAction(runState), runState.CurrentEvent.TriggerAt);
+            if (runState.CurrentEvent.TriggerAt == TimeSpan.Zero) {
+                GetStatementAction(runState).Invoke();
+            } else {
+                AddFutureEvent(GetStatementAction(runState), runState.CurrentEvent.TriggerAt);
             }
         }
 
-        private Action BuildEventAction(RunState runState)
+        private Action GetStatementAction(RunState runState)
         {
-            Action action = runState.CurrentEvent switch
+            return runState.CurrentEvent switch
             {
-                SceneCreateStatement createEvent => () => CreateEventAction(runState, createEvent),
-                SceneSetPropertyStatement setEvent => () => SetEventAction(runState, setEvent),
-                SceneSetTransitionStatement transitionEvent => () => TransitionAction(runState, transitionEvent),
+                SceneCreateStatement createStatement => GetCreateAction(runState, createStatement),
+                SceneSetPropertyStatement setStatement => GetSetAction(runState, setStatement),
+                SceneSetTransitionStatement transitionStatement => GetTransitionAction(runState, transitionStatement),
                 _ => throw new NotImplementedException()
             };
-
-            return action;
         }
 
-        private void CreateEventAction(RunState runState, SceneCreateStatement sceneCreateEvent)
+        private Action GetCreateAction(RunState runState, SceneCreateStatement sceneCreateStatement)
         {
-            if (!(nodeCommander.CreateNode(sceneCreateEvent.Type, runState.ConnectionId, sceneCreateEvent.Parameters) is INode node))
-            {
-                throw new Exception($"Failed to create node '{sceneCreateEvent.Type}'");
-            }
+            return () => {
+                var parent = sceneCreateStatement.ParentNodeName != null ? runState.GetNodeVariable(sceneCreateStatement.ParentNodeName) : null;
+                if (parent != null) {
+                    if (!(nodeCommander.CreateChildNode(sceneCreateStatement.Type, parent, sceneCreateStatement.Parameters) is INode node)) {
+                        throw new Exception($"Failed to create child node '{sceneCreateStatement.Type}'");
+                    }
 
-            runState.NodeVariables[sceneCreateEvent.NodeName] = node;
+                    runState.AddNodeVariable(sceneCreateStatement.NodeName, node);
+                } else {
+                    if (!(nodeCommander.CreateNode(sceneCreateStatement.Type, runState.ConnectionId, sceneCreateStatement.Parameters) is INode node)) {
+                        throw new Exception($"Failed to create node '{sceneCreateStatement.Type}'");
+                    }
+
+                    runState.AddNodeVariable(sceneCreateStatement.NodeName, node);
+                }
+            };
         }
 
-        private void SetEventAction(RunState runState, SceneSetPropertyStatement setEvent)
+        private Action GetSetAction(RunState runState, SceneSetPropertyStatement setStatement)
         {
-            var node = runState.NodeVariables[setEvent.NodeName];
-            nodeCommander.SetProperty(node, setEvent.PropertyName, setEvent.PropertyValue);
+            return () => {
+                var node = runState.GetNodeVariable(setStatement.NodeName);
+                nodeCommander.SetProperty(node, setStatement.PropertyName, setStatement.PropertyValue);
+            };
         }
 
-        private void TransitionAction(RunState runState, SceneSetTransitionStatement transitionEvent)
+        private Action GetTransitionAction(RunState runState, SceneSetTransitionStatement transitionStatement)
         {
-            var node = runState.NodeVariables[transitionEvent.NodeName];
-            nodeCommander.SetTransition(node, transitionEvent.TransitionProperties, transitionEvent.Duration);
+            return () => {
+                var node = runState.GetNodeVariable(transitionStatement.NodeName);
+                nodeCommander.SetTransition(node, transitionStatement.TransitionProperties, transitionStatement.Duration);
+            };
         }
 
         private void AddFutureEvent(Action action, TimeSpan when)

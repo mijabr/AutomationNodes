@@ -75,8 +75,9 @@ namespace AutomationNodes.Core.Compile
 
         private void CompileStatement(Compilation compilation)
         {
-            compilation.StatementsOutput.Peek().Add(new SceneClassStatement {
-                ClassName = compilation.GetState(ClassName),
+            var className = compilation.GetState(ClassName);
+            compilation.Classes.Add(className, new Class {
+                ClassName = className,
                 ConstructorParameters = compilation.GetState<List<string>>(ConstructorParameters).ToArray(),
                 Statements = compilation.GetState<List<CompiledStatement>>(Statements)
             });

@@ -36,9 +36,19 @@ namespace AutomationPlayground.Scenes
 
             Image(assets/two-trees.jpg).set([height:100%]);
 
-            bird = Bird(200px,100px).set([left:40%,top:33%]);
+            class Bird(width,height) {
+                var body = Image(assets/flying-bird-body.png,%width%,%height%).set([z-index:1]);
+                var leftWing = Image(assets/flying-bird-left-wing.png,%width%,%height%);
+                var rightWing = Image(assets/flying-bird-right-wing.png,%width%,%height%);
+            };
 
-            //bird.flap(500);
+            var myBird1 = Bird(200px,100px).set([left:40%,top:33%]);
+            var myBird2 = Bird(200px,100px).set([left:50%,top:15%]);
+            var myBird3 = Bird(200px,100px).set([left:60%,top:33%]);
+            var myBird4 = Bird(200px,100px).set([left:70%,top:43%]);
+            var myBird5 = Bird(200px,100px).set([left:40%,top:53%]);
+
+            //bird1.flap(500);
 ";
     }
 }
