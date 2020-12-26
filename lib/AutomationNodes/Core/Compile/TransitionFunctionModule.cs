@@ -35,7 +35,8 @@ namespace AutomationNodes.Core.Compile
         private void ExpectTransitionFunctionParameters(Compilation compilation, string token)
         {
             var current = compilation.State;
-            if (token.Is(")")) {
+            if (token.Trim().Length == 0) {
+            } else if (token.Is(")")) {
                 CompileStatement(compilation);
                 compilation.State = new State();
                 compilation.State.Variable = current.Variable;
@@ -51,7 +52,7 @@ namespace AutomationNodes.Core.Compile
 
         private void ExpectTransitionFunctionParameterPropertyName(Compilation compilation, string token)
         {
-            compilation.AddState(TransitionFunctionParameterName, token);
+            compilation.AddState(TransitionFunctionParameterName, token.Trim());
             compilation.TokenHandler = ExpectTransitionFunctionParameterPropertySeparator;
         }
 

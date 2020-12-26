@@ -97,7 +97,8 @@ namespace AutomationNodesTests
                 var setFunctionModule = new SetFunctionModule(serviceProvider.Object);
                 var transitionFunctionModule = new TransitionFunctionModule(serviceProvider.Object);
                 var classModule = new ClassModule(serviceProvider.Object);
-                var openingModule = new OpeningModule(constructionModule, setFunctionModule, transitionFunctionModule, classModule);
+                var functionModule = new FunctionModule(serviceProvider.Object);
+                var openingModule = new OpeningModule(constructionModule, setFunctionModule, transitionFunctionModule, classModule, functionModule);
                 serviceProvider.Setup(s => s.GetService(It.Is<Type>(t => t == typeof(IOpeningModule)))).Returns(openingModule);
                 SceneCompiler = new SceneCompiler(new ScriptTokenizer(), openingModule);
             }
@@ -416,6 +417,75 @@ namespace AutomationNodesTests
         }
 
         [Test]
+        public void Run_ShouldCreateFunctionStatement_GivenFunctionDefinition()
+        {
+            var state = new TestState();
+            const string script = @"
+            function myFunc() {
+                Div(1).set([z-index:1]).transition([left:10px,top:10px,duration:1000]);
+            };
+            myFunc();
+            myFunc();
+            ";
+
+            var events = state.SceneCompiler.Compile(script);
+
+            events.Count.Should().Be(6);
+            events[0].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, new string[] { "1" });
+            events[1].ShouldBeSetPropertyStatement("z-index", "1", TimeSpan.Zero);
+            events[2].ShouldBeSetTransitionEvent(new Dictionary<string, string> { { "left", "10px" }, { "top", "10px" } }, TimeSpan.FromSeconds(1), TimeSpan.Zero);
+            events[3].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, new string[] { "1" });
+            events[4].ShouldBeSetPropertyStatement("z-index", "1", TimeSpan.Zero);
+            events[5].ShouldBeSetTransitionEvent(new Dictionary<string, string> { { "left", "10px" }, { "top", "10px" } }, TimeSpan.FromSeconds(1), TimeSpan.Zero);
+        }
+
+        [Test]
+        public void Run_ShouldCreateFunctionStatementWithParameters_GivenFunctionDefinition()
+        {
+            var state = new TestState();
+            const string script = @"
+            function myFunc(divNum,pos,movepos) {
+                Div(%divNum%).set([left:%pos%]).transition([left:%movepos%,top:10px,duration:1000]);
+            };
+            myFunc(1,100px,25px);
+            myFunc(2,200px);
+            ";
+
+            var events = state.SceneCompiler.Compile(script);
+
+            events.Count.Should().Be(6);
+            events[0].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, new string[] { "1" });
+            events[1].ShouldBeSetPropertyStatement("left", "100px", TimeSpan.Zero);
+            events[2].ShouldBeSetTransitionEvent(new Dictionary<string, string> { { "left", "25px" }, { "top", "10px" } }, TimeSpan.FromSeconds(1), TimeSpan.Zero);
+            events[3].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, new string[] { "2" });
+            events[4].ShouldBeSetPropertyStatement("left", "200px", TimeSpan.Zero);
+            events[5].ShouldBeSetTransitionEvent(new Dictionary<string, string> { { "left", "" }, { "top", "10px" } }, TimeSpan.FromSeconds(1), TimeSpan.Zero);
+        }
+
+        [Test]
+        public void Run_ShouldCreateFunctionStatementWithCrazyWhitespace_GivenFunctionDefinition()
+        {
+            var state = new TestState();
+            const string script = @"
+            function myFunc ( divNum , pos , movepos ) {
+                Div( %divNum% ) . set( [ left : %pos% ] ) . transition( [ left : %movepos% , top :10px, duration : 1000 ] ) ;
+            };
+            myFunc (1, 100px , 25px );
+            myFunc ( 2, 200px) ;
+            ";
+
+            var events = state.SceneCompiler.Compile(script);
+
+            events.Count.Should().Be(6);
+            events[0].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, new string[] { "1" });
+            events[1].ShouldBeSetPropertyStatement("left", "100px", TimeSpan.Zero);
+            events[2].ShouldBeSetTransitionEvent(new Dictionary<string, string> { { "left", "25px" }, { "top", "10px" } }, TimeSpan.FromSeconds(1), TimeSpan.Zero);
+            events[3].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, new string[] { "2" });
+            events[4].ShouldBeSetPropertyStatement("left", "200px", TimeSpan.Zero);
+            events[5].ShouldBeSetTransitionEvent(new Dictionary<string, string> { { "left", "" }, { "top", "10px" } }, TimeSpan.FromSeconds(1), TimeSpan.Zero);
+        }
+
+        [Test]
         public void Run_ShouldCreateClassStatement_GivenClassDefinition()
         {
             var state = new TestState();
@@ -427,7 +497,7 @@ namespace AutomationNodesTests
             var events = state.SceneCompiler.Compile(script);
 
             events.Count.Should().Be(1);
-            events[0].ShouldBeCreateFromClassStatement("Bird", typeof(GenericNode), TimeSpan.Zero, new string [0]);
+            events[0].ShouldBeCreateFromClassStatement("Bird", typeof(GenericNode), TimeSpan.Zero, new string[0]);
         }
 
         [Test]

@@ -32,7 +32,8 @@ namespace AutomationNodes.Core.Compile
 
         private void ExpectSetFunctionParameters(Compilation compilation, string token)
         {
-            if (token.Is(")")) {
+            if (token.Trim().Length == 0) {
+            } else if (token.Is(")")) {
                 compilation.TokenParameters.Pop();
                 compilation.TokenHandler = openingModule.Value.ExpectNothingInParticular;
             } else if (token.Is("[") || token.Is(",")) {
@@ -45,7 +46,7 @@ namespace AutomationNodes.Core.Compile
 
         private void ExpectSetFunctionParameterPropertyName(Compilation compilation, string token)
         {
-            compilation.AddState(SetFunctionParameterName, token);
+            compilation.AddState(SetFunctionParameterName, token.Trim());
             compilation.TokenHandler = ExpectSetFunctionParameterPropertySeparator;
         }
 

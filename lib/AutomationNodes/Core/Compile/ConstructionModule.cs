@@ -78,6 +78,18 @@ namespace AutomationNodes.Core.Compile
 
         private static void CompileStatement(Compilation compilation)
         {
+            var constructorParameters = compilation.GetState<List<string>>(ConstructorParameters);
+
+            compilation.Functions.TryGetValue(compilation.GetState(TypeName), out var function);
+            if (function != null) {
+                foreach (var statement in function.Statements) {
+                    var parameterValues = function.ConstructorParameters.Select((p, index) =>
+                        new KeyValuePair<string, string>($"%{p}%", index < constructorParameters.Count ? constructorParameters[index] : string.Empty)).ToDictionary();
+                    compilation.StatementsOutput.Peek().Add(statement.GenerateInstanceStatement(null, parameterValues));
+                }
+                return;
+            }
+
             Type type = null;
             compilation.Classes.TryGetValue(compilation.GetState(TypeName), out var nodeClass);
             if (nodeClass != null) {
@@ -91,7 +103,6 @@ namespace AutomationNodes.Core.Compile
             }
 
             var variableName = compilation.State.Variable.Name;
-            var constructorParameters = compilation.GetState<List<string>>(ConstructorParameters);
 
             compilation.StatementsOutput.Peek().Add(new SceneCreateStatement {
                 TriggerAt = compilation.SceneTime,
@@ -103,8 +114,9 @@ namespace AutomationNodes.Core.Compile
 
             if (nodeClass != null) {
                 foreach (var statement in nodeClass.Statements) {
-                    var parameterValues = nodeClass.ConstructorParameters.Select((p, index) => new KeyValuePair<string, string>($"%{p}%", constructorParameters[index])).ToDictionary();
-                    compilation.StatementsOutput.Peek().Add(statement.GenerateClassInstanceStatement(variableName, parameterValues));
+                    var parameterValues = nodeClass.ConstructorParameters.Select((p, index) =>
+                        new KeyValuePair<string, string>($"%{p}%", constructorParameters[index])).ToDictionary();
+                    compilation.StatementsOutput.Peek().Add(statement.GenerateInstanceStatement(variableName, parameterValues));
                 }
             }
         }

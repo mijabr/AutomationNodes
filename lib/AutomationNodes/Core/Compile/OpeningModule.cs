@@ -19,17 +19,20 @@ namespace AutomationNodes.Core.Compile
         private readonly ISetFunctionModule setFunctionModule;
         private readonly ITransitionFunctionModule transitionFunctionModule;
         private readonly IClassModule classModule;
+        private readonly IFunctionModule functionModule;
 
         public OpeningModule(
             IConstructionModule constructionModule,
             ISetFunctionModule setFunctionModule,
             ITransitionFunctionModule transitionFunctionModule,
-            IClassModule classModule)
+            IClassModule classModule,
+            IFunctionModule functionModule)
         {
             this.constructionModule = constructionModule;
             this.setFunctionModule = setFunctionModule;
             this.transitionFunctionModule = transitionFunctionModule;
             this.classModule = classModule;
+            this.functionModule = functionModule;
         }
 
         private const string OpeningToken = "OpeningToken";
@@ -51,6 +54,8 @@ namespace AutomationNodes.Core.Compile
                 compilation.TokenHandler = ExpectUsing;
             } else if (token.IsKeyword("var")) {
                 compilation.TokenHandler = constructionModule.ExpectVarName;
+            } else if (token.IsKeyword("function")) {
+                compilation.TokenHandler = functionModule.ExpectFunctionName;
             } else if (token.IsKeyword("class")) {
                 compilation.TokenHandler = classModule.ExpectClassName;
             } else if (token == ".") {
