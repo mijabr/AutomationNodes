@@ -86,14 +86,13 @@ namespace AutomationNodes.Core.Compile
             var current = compilation.State;
 
             if (token.Is("(")) {
-                if (current.Variable == null) {
-                    current.Variable = new Variable { Name = Guid.NewGuid().ToString() };
-                    compilation.Variables.Add(current.Variable.Name, current.Variable);
-                }
                 constructionModule.ExpectTypeName(compilation, compilation.GetState(OpeningToken));
                 constructionModule.ExpectOpenBracket(compilation, token);
             } else if (token.Is(".")) {
-                current.Variable = compilation.Variables[compilation.GetState(OpeningToken)];
+                current.Variable = compilation.Variables.TryGetValue(compilation.GetState(OpeningToken), out var v) ? v : null;
+                if (current.Variable == null) {
+                    throw new Exception($"Unknown variable '{compilation.GetState(OpeningToken)}'");
+                }
                 compilation.TokenHandler = ExpectFunctionName;
             } else {
                 throw new Exception($"Expected . or ( after {compilation.GetState(OpeningToken)}");
@@ -112,6 +111,9 @@ namespace AutomationNodes.Core.Compile
         private void ExpectAtParameter(Compilation compilation, string token)
         {
             compilation.SceneTime = token.ToTimeSpan();
+            foreach (var variable in compilation.Variables) {
+                variable.Value.Duration = TimeSpan.Zero;
+            }
             compilation.TokenHandler = ExpectCloseBracket;
         }
 

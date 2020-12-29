@@ -6,6 +6,7 @@ namespace AutomationNodes.Core.Compile
     public interface ISetFunctionModule
     {
         void ExpectOpenBraket(Compilation compilation, string token);
+        void CompileInstanceStatement(Compilation compilation, SceneSetPropertyStatement setStatement, Dictionary<string, string> functionParameters);
     }
 
     public class SetFunctionModule : ISetFunctionModule
@@ -65,6 +66,19 @@ namespace AutomationNodes.Core.Compile
             CompileStatement(compilation);
             compilation.State = new State(compilation.State.Variable);
             compilation.TokenHandler = ExpectSetFunctionParameters;
+        }
+
+        public void CompileInstanceStatement(Compilation compilation, SceneSetPropertyStatement setStatement, Dictionary<string, string> parameters)
+        {
+            var variable = compilation.State.Variable;
+            compilation.State = new State();
+            compilation.State.Variable = variable;
+            if (compilation.State.Variable == null) {
+                compilation.State.Variable = compilation.Variables[setStatement.NodeName];
+            }
+            compilation.AddState(SetFunctionParameterName, setStatement.PropertyName);
+            compilation.AddState(SetFunctionParameterValue, parameters.TryGetValue(setStatement.PropertyValue.Trim(), out var value) ? value : setStatement.PropertyValue);
+            CompileStatement(compilation);
         }
 
         private static void CompileStatement(Compilation compilation)

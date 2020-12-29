@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace AutomationNodes.Core.Compile
 {
     public interface ITransitionFunctionModule
     {
         void ExpectOpenBraket(Compilation compilation, string token);
+        void CompileInstanceStatement(Compilation compilation, SceneSetTransitionStatement transitionStatement, Dictionary<string, string> functionParameters);
     }
 
     public class TransitionFunctionModule : ITransitionFunctionModule
@@ -77,6 +79,21 @@ namespace AutomationNodes.Core.Compile
             compilation.TokenHandler = ExpectTransitionFunctionParameters;
         }
 
+        public void CompileInstanceStatement(Compilation compilation, SceneSetTransitionStatement transitionStatement, Dictionary<string, string> parameters)
+        {
+            var variable = compilation.State.Variable;
+            compilation.State = new State();
+            compilation.State.Variable = variable;
+            if (compilation.State.Variable == null) {
+                compilation.State.Variable = compilation.Variables[transitionStatement.NodeName];
+            }
+            compilation.AddState(Duration, transitionStatement.Duration.TotalMilliseconds.ToString());
+            compilation.AddState(TransitionParameters, transitionStatement.TransitionProperties
+                .Select(p => new KeyValuePair<string, string>(p.Key, parameters.TryGetValue(p.Value.Trim(), out var value) ? value : p.Value))
+                .ToDictionary());
+            CompileStatement(compilation);
+        }
+
         private static void CompileStatement(Compilation compilation)
         {
             var duration = TimeSpan.FromMilliseconds(int.Parse(compilation.GetState(Duration)));
@@ -87,7 +104,9 @@ namespace AutomationNodes.Core.Compile
                 Duration = duration
             });
 
-            compilation.State.Variable.Duration += duration;
+            if (!compilation.IsCompilingADefinition) {
+                compilation.State.Variable.Duration += duration;
+            }
         }
     }
 }

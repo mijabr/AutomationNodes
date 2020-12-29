@@ -48,34 +48,34 @@ namespace AutomationNodes.Core
             public void AddNodeVariable(string nodeName, INode node) => NodeVariables[VariableContext(nodeName)] = node;
             public INode GetNodeVariable(string nodeName) => NodeVariables[VariableContext(nodeName)];
             public Dictionary<string, GenericNodeClass> NodeClasses { get; } = new();
-            public CompiledStatement CurrentEvent { get; set; }
+            public CompiledStatement CurrentStatement { get; set; }
             public string CurrentClassVariableName { get; set; }
             private string VariableContext(string variableName) => CurrentClassVariableName != null
                 ? $"{CurrentClassVariableName}.variableName"
                 : variableName;
         }
 
-        private void Run(IEnumerable<CompiledStatement> events, string connectionId)
+        private void Run(IEnumerable<CompiledStatement> compiledStatements, string connectionId)
         {
             var runState = new RunState { ConnectionId = connectionId };
-            foreach(var e in events) {
-                runState.CurrentEvent = e;
+            foreach(var statement in compiledStatements) {
+                runState.CurrentStatement = statement;
                 RunStatement(runState);
             };
         }
 
         private void RunStatement(RunState runState)
         {
-            if (runState.CurrentEvent.TriggerAt == TimeSpan.Zero) {
+            if (runState.CurrentStatement.TriggerAt == TimeSpan.Zero) {
                 GetStatementAction(runState).Invoke();
             } else {
-                AddFutureEvent(GetStatementAction(runState), runState.CurrentEvent.TriggerAt);
+                AddFutureEvent(GetStatementAction(runState), runState.CurrentStatement.TriggerAt);
             }
         }
 
         private Action GetStatementAction(RunState runState)
         {
-            return runState.CurrentEvent switch
+            return runState.CurrentStatement switch
             {
                 SceneCreateStatement createStatement => GetCreateAction(runState, createStatement),
                 SceneSetPropertyStatement setStatement => GetSetAction(runState, setStatement),

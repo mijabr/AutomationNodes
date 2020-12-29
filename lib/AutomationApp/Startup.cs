@@ -31,6 +31,7 @@ namespace AutomationApp
             services.AddSingleton(typeof(IConstructionModule), typeof(ConstructionModule));
             services.AddSingleton(typeof(ISetFunctionModule), typeof(SetFunctionModule));
             services.AddSingleton(typeof(ITransitionFunctionModule), typeof(TransitionFunctionModule));
+            services.AddSingleton(typeof(IFunctionModule), typeof(FunctionModule));
             services.AddSingleton(typeof(IClassModule), typeof(ClassModule));
 
             services.AddAutomationArtifactsFromAssembly(Assembly.Load("AutomationNodes"));
