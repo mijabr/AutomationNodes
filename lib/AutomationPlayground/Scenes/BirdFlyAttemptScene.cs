@@ -55,6 +55,15 @@ namespace AutomationPlayground.Scenes
             var myBird3 = Bird(200px,100px).set([left:60%,top:33%]);
             var myBird4 = Bird(200px,100px).set([left:70%,top:43%]);
             var myBird5 = Bird(200px,100px).set([left:40%,top:53%]);
+
+            function flap() {
+                myBird1-leftWing.transition([transform:rotate(-80deg),duration:300]).transition([transform:rotate(0deg),duration:300]);
+                myBird1-rightWing.transition([transform:rotate(80deg),duration:300]).transition([transform:rotate(0deg),duration:300]);
+            };
+
+            flap();
+            flap();
+            flap();
             ";
     }
 }

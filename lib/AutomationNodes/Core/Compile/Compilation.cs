@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace AutomationNodes.Core.Compile
 {
@@ -55,6 +54,13 @@ namespace AutomationNodes.Core.Compile
         public Dictionary<string, Type> TypesLibrary = new();
         public Dictionary<string, Function> Functions { get; set; } = new();
         public Dictionary<string, Class> Classes = new();
+
+        public Variable NewVariable(string name, string scope = null) {
+            var variable = new Variable(name, scope);
+            Variables.Add(variable.Fullname, variable);
+            State.Variable = variable;
+            return variable;
+        }
         public Dictionary<string, Variable> Variables { get; } = new();
 
         public List<CompiledStatement> Statements { get; set; } = new();
@@ -87,12 +93,16 @@ namespace AutomationNodes.Core.Compile
 
     public class Variable
     {
-        public Variable(string name)
+        public Variable(string name, string scope = null)
         {
             Name = name;
+            Scope = scope;
+            Fullname = scope == null ? name : $"{scope}-{name}";
         }
 
+        public string Scope { get; set; }
         public string Name { get; set; }
+        public string Fullname { get; set; }
         public TimeSpan Duration { get; set; }
     }
 

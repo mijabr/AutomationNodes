@@ -95,7 +95,7 @@ namespace AutomationNodes.Core.Compile
 
         public void CompileClassInstance(Compilation compilation, Class nodeClass, List<string> parameterValues)
         {
-            var classScope = compilation.State.Variable.Name;
+            var classScope = compilation.State.Variable.Fullname;
             var classParameters = nodeClass.ConstructorParameters
                 .Select((p, index) => new KeyValuePair<string, string>($"%{p}%", index < parameterValues.Count ? parameterValues[index] : string.Empty))
                 .ToDictionary();

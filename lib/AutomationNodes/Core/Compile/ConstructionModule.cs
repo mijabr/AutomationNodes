@@ -36,9 +36,7 @@ namespace AutomationNodes.Core.Compile
         public void ExpectVarName(Compilation compilation, string token)
         {
             if (compilation.State.Variable == null) {
-                var variable = new Variable(token);
-                compilation.State.Variable = variable;
-                compilation.Variables.Add(variable.Name, variable);
+                compilation.NewVariable(token);
                 compilation.TokenHandler = ExpectAssignment;
             } else {
                 throw new Exception("variable already named");
@@ -86,9 +84,7 @@ namespace AutomationNodes.Core.Compile
         public int CompileInstanceStatement(Compilation compilation, SceneCreateStatement createStatement, Dictionary<string, string> parameters, string scope, string parentNodeName = null)
         {
             compilation.State = new State();
-            var variable = new Variable($"{scope}.{createStatement.NodeName}");
-            compilation.State.Variable = variable;
-            compilation.Variables.Add(variable.Name, variable);
+            compilation.NewVariable(createStatement.NodeName, scope);
             compilation.AddState(TypeName, createStatement.Type.Name.ToString());
             compilation.AddState(ConstructorParameters, createStatement.Parameters.Select(p => parameters.TryGetValue(p, out var value) ? value : p).ToList());
             compilation.AddState(ParentNodename, parentNodeName);
@@ -106,8 +102,7 @@ namespace AutomationNodes.Core.Compile
             }
 
             if (compilation.State.Variable == null) {
-                compilation.State.Variable = new Variable(Guid.NewGuid().ToString());
-                compilation.Variables.Add(compilation.State.Variable.Name, compilation.State.Variable);
+                compilation.NewVariable(Guid.NewGuid().ToString());
             }
 
             Type type;
@@ -122,7 +117,7 @@ namespace AutomationNodes.Core.Compile
                 throw new Exception($"Unknown node type '{compilation.GetState(TypeName)}'. Are you missing a using?");
             }
 
-            var variableName = compilation.State.Variable.Name;
+            var variableName = compilation.State.Variable.Fullname;
 
             compilation.StatementsOutput.Peek().Add(new SceneCreateStatement {
                 TriggerAt = compilation.SceneTime,

@@ -623,10 +623,10 @@ namespace AutomationNodesTests
 
             statements.Count.Should().Be(5);
             statements[0].ShouldBeCreateFromClassStatement("myBird", "Bird", typeof(GenericNode), TimeSpan.Zero, new[] { "100px", "200px" });
-            statements[1].ShouldBeCreateChildStatement("myBird.body", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-body.png", "100px", "200px" });
-            statements[2].ShouldBeSetPropertyStatement("myBird.body", "z-index", "1", TimeSpan.Zero);
-            statements[3].ShouldBeCreateChildStatement("myBird.leftWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-left-wing.png", "100px", "200px" });
-            statements[4].ShouldBeCreateChildStatement("myBird.rightWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-right-wing.png", "100px", "200px" });
+            statements[1].ShouldBeCreateChildStatement("myBird-body", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-body.png", "100px", "200px" });
+            statements[2].ShouldBeSetPropertyStatement("myBird-body", "z-index", "1", TimeSpan.Zero);
+            statements[3].ShouldBeCreateChildStatement("myBird-leftWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-left-wing.png", "100px", "200px" });
+            statements[4].ShouldBeCreateChildStatement("myBird-rightWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-right-wing.png", "100px", "200px" });
         }
 
         [Test]
@@ -646,10 +646,10 @@ namespace AutomationNodesTests
 
             statements.Count.Should().Be(7);
             statements[0].ShouldBeCreateFromClassStatement("myBird", "Bird", typeof(GenericNode), TimeSpan.Zero, new[] { "100px", "200px" });
-            statements[1].ShouldBeCreateChildStatement("myBird.body", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-body.png", "100px", "200px" });
-            statements[2].ShouldBeSetPropertyStatement("myBird.body", "z-index", "1", TimeSpan.Zero);
-            statements[3].ShouldBeCreateChildStatement("myBird.leftWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-left-wing.png", "100px", "200px" });
-            statements[4].ShouldBeCreateChildStatement("myBird.rightWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-right-wing.png", "100px", "200px" });
+            statements[1].ShouldBeCreateChildStatement("myBird-body", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-body.png", "100px", "200px" });
+            statements[2].ShouldBeSetPropertyStatement("myBird-body", "z-index", "1", TimeSpan.Zero);
+            statements[3].ShouldBeCreateChildStatement("myBird-leftWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-left-wing.png", "100px", "200px" });
+            statements[4].ShouldBeCreateChildStatement("myBird-rightWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-right-wing.png", "100px", "200px" });
             statements[5].ShouldBeSetPropertyStatement("myBird", "left", "500px", TimeSpan.Zero);
             statements[6].ShouldBeSetPropertyStatement("myBird", "top", "300px", TimeSpan.Zero);
         }
@@ -671,17 +671,65 @@ namespace AutomationNodesTests
 
             statements.Count.Should().Be(12);
             statements[0].ShouldBeCreateFromClassStatement("myBird", "Bird", typeof(GenericNode), TimeSpan.Zero, new[] { "100px", "200px" });
-            statements[1].ShouldBeCreateChildStatement("myBird.body", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-body.png", "100px", "200px" });
-            statements[2].ShouldBeSetPropertyStatement("myBird.body", "z-index", "1", TimeSpan.Zero);
-            statements[3].ShouldBeCreateChildStatement("myBird.leftWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-left-wing.png", "100px", "200px" });
-            statements[4].ShouldBeSetTransitionStatement("myBird.leftWing", new Dictionary<string, string> { { "transform", "rotate(-80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.Zero);
-            statements[5].ShouldBeSetTransitionStatement("myBird.leftWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(300));
-            statements[6].ShouldBeCreateChildStatement("myBird.rightWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-right-wing.png", "100px", "200px" });
-            statements[7].ShouldBeSetTransitionStatement("myBird.rightWing", new Dictionary<string, string> { { "transform", "rotate(80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.Zero);
-            statements[8].ShouldBeSetTransitionStatement("myBird.rightWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(300));
+            statements[1].ShouldBeCreateChildStatement("myBird-body", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-body.png", "100px", "200px" });
+            statements[2].ShouldBeSetPropertyStatement("myBird-body", "z-index", "1", TimeSpan.Zero);
+            statements[3].ShouldBeCreateChildStatement("myBird-leftWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-left-wing.png", "100px", "200px" });
+            statements[4].ShouldBeSetTransitionStatement("myBird-leftWing", new Dictionary<string, string> { { "transform", "rotate(-80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.Zero);
+            statements[5].ShouldBeSetTransitionStatement("myBird-leftWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(300));
+            statements[6].ShouldBeCreateChildStatement("myBird-rightWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-right-wing.png", "100px", "200px" });
+            statements[7].ShouldBeSetTransitionStatement("myBird-rightWing", new Dictionary<string, string> { { "transform", "rotate(80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.Zero);
+            statements[8].ShouldBeSetTransitionStatement("myBird-rightWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(300));
             statements[9].ShouldBeSetPropertyStatement("myBird", "left", "500px", TimeSpan.Zero);
             statements[10].ShouldBeSetPropertyStatement("myBird", "top", "300px", TimeSpan.Zero);
             statements[11].ShouldBeSetTransitionStatement("myBird", new Dictionary<string, string> { { "left", "200px" } }, TimeSpan.FromSeconds(1), TimeSpan.Zero);
+        }
+
+        [Test]
+        public void Run_ShouldMoveClassUsingFunction_GivenClassFunctionUsage()
+        {
+            var state = new TestState();
+            const string script = @"
+            class Bird(width,height) {
+                var body = Image(assets/flying-bird-body.png,%width%,%height%).set([z-index:1]);
+                var leftWing = Image(assets/flying-bird-left-wing.png,%width%,%height%);
+                var rightWing = Image(assets/flying-bird-right-wing.png,%width%,%height%);
+            };
+            var myBird = Bird(100px,200px).set([left:500px,top:300px]);
+            function flap() {
+                myBird-leftWing.transition([transform:rotate(-80deg),duration:300]).transition([transform:rotate(0deg),duration:300]);
+                myBird-rightWing.transition([transform:rotate(80deg),duration:300]).transition([transform:rotate(0deg),duration:300]);
+                myBird-body.set([color:red]);
+            };
+            flap();
+            flap();
+            flap();
+            ";
+
+            var statements = state.SceneCompiler.Compile(script);
+
+            statements.Count.Should().Be(22);
+            statements[0].ShouldBeCreateFromClassStatement("myBird", "Bird", typeof(GenericNode), TimeSpan.Zero, new[] { "100px", "200px" });
+            statements[1].ShouldBeCreateChildStatement("myBird-body", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-body.png", "100px", "200px" });
+            statements[2].ShouldBeSetPropertyStatement("myBird-body", "z-index", "1", TimeSpan.Zero);
+            statements[3].ShouldBeCreateChildStatement("myBird-leftWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-left-wing.png", "100px", "200px" });
+            statements[4].ShouldBeCreateChildStatement("myBird-rightWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-right-wing.png", "100px", "200px" });
+            statements[5].ShouldBeSetPropertyStatement("myBird", "left", "500px", TimeSpan.Zero);
+            statements[6].ShouldBeSetPropertyStatement("myBird", "top", "300px", TimeSpan.Zero);
+            statements[7].ShouldBeSetTransitionStatement("myBird-leftWing", new Dictionary<string, string> { { "transform", "rotate(-80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.Zero);
+            statements[8].ShouldBeSetTransitionStatement("myBird-leftWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(300));
+            statements[9].ShouldBeSetTransitionStatement("myBird-rightWing", new Dictionary<string, string> { { "transform", "rotate(80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.Zero);
+            statements[10].ShouldBeSetTransitionStatement("myBird-rightWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(300));
+            statements[11].ShouldBeSetPropertyStatement("myBird-body", "color", "red", TimeSpan.Zero);
+            statements[12].ShouldBeSetTransitionStatement("myBird-leftWing", new Dictionary<string, string> { { "transform", "rotate(-80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(600));
+            statements[13].ShouldBeSetTransitionStatement("myBird-leftWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(900));
+            statements[14].ShouldBeSetTransitionStatement("myBird-rightWing", new Dictionary<string, string> { { "transform", "rotate(80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(600));
+            statements[15].ShouldBeSetTransitionStatement("myBird-rightWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(900));
+            statements[16].ShouldBeSetPropertyStatement("myBird-body", "color", "red", TimeSpan.Zero);
+            statements[17].ShouldBeSetTransitionStatement("myBird-leftWing", new Dictionary<string, string> { { "transform", "rotate(-80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1200));
+            statements[18].ShouldBeSetTransitionStatement("myBird-leftWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1500));
+            statements[19].ShouldBeSetTransitionStatement("myBird-rightWing", new Dictionary<string, string> { { "transform", "rotate(80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1200));
+            statements[20].ShouldBeSetTransitionStatement("myBird-rightWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1500));
+            statements[21].ShouldBeSetPropertyStatement("myBird-body", "color", "red", TimeSpan.Zero);
         }
 
         //[Test]

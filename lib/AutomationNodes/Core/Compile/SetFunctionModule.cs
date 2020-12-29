@@ -73,7 +73,7 @@ namespace AutomationNodes.Core.Compile
             var variable = compilation.State.Variable;
             compilation.State = new State();
             compilation.State.Variable = variable;
-            if (compilation.State.Variable == null) {
+            if (compilation.State.Variable == null || compilation.State.Variable.Name != setStatement.NodeName) {
                 compilation.State.Variable = compilation.Variables[setStatement.NodeName];
             }
             compilation.AddState(SetFunctionParameterName, setStatement.PropertyName);
@@ -85,7 +85,7 @@ namespace AutomationNodes.Core.Compile
         {
             compilation.StatementsOutput.Peek().Add(new SceneSetPropertyStatement {
                 TriggerAt = compilation.SceneTime + compilation.State.Variable.Duration,
-                NodeName = compilation.State.Variable.Name,
+                NodeName = compilation.State.Variable.Fullname,
                 PropertyName = compilation.GetState(SetFunctionParameterName),
                 PropertyValue = compilation.GetState(SetFunctionParameterValue)
             });

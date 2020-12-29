@@ -84,7 +84,7 @@ namespace AutomationNodes.Core.Compile
             var variable = compilation.State.Variable;
             compilation.State = new State();
             compilation.State.Variable = variable;
-            if (compilation.State.Variable == null) {
+            if (compilation.State.Variable == null || compilation.State.Variable.Name != transitionStatement.NodeName) {
                 compilation.State.Variable = compilation.Variables[transitionStatement.NodeName];
             }
             compilation.AddState(Duration, transitionStatement.Duration.TotalMilliseconds.ToString());
@@ -99,7 +99,7 @@ namespace AutomationNodes.Core.Compile
             var duration = TimeSpan.FromMilliseconds(int.Parse(compilation.GetState(Duration)));
             compilation.StatementsOutput.Peek().Add(new SceneSetTransitionStatement {
                 TriggerAt = compilation.SceneTime + compilation.State.Variable.Duration,
-                NodeName = compilation.State.Variable.Name,
+                NodeName = compilation.State.Variable.Fullname,
                 TransitionProperties = compilation.GetState<Dictionary<string, string>>(TransitionParameters),
                 Duration = duration
             });
