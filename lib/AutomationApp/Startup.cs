@@ -28,6 +28,7 @@ namespace AutomationApp
             services.AddSingleton(typeof(ISceneActioner), typeof(SceneActioner));
             services.AddSingleton(typeof(INodeCommander), typeof(NodeCommander));
             services.AddSingleton(typeof(IOpeningModule), typeof(OpeningModule));
+            services.AddSingleton(typeof(IParameterModule), typeof(ParameterModule));
             services.AddSingleton(typeof(IConstructionModule), typeof(ConstructionModule));
             services.AddSingleton(typeof(ISetFunctionModule), typeof(SetFunctionModule));
             services.AddSingleton(typeof(ITransitionFunctionModule), typeof(TransitionFunctionModule));

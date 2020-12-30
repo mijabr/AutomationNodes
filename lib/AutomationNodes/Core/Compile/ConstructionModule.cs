@@ -1,5 +1,4 @@
-﻿using AutomationNodes.Nodes;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -8,30 +7,23 @@ namespace AutomationNodes.Core.Compile
     public interface IConstructionModule
     {
         void ExpectVarName(Compilation compilation, string token);
-        void ExpectTypeName(Compilation compilation, string token);
-        void ExpectOpenBracket(Compilation compilation, string token);
-        int CompileInstanceStatement(Compilation compilation, SceneCreateStatement createStatement, Dictionary<string, string> parameters, string scope, string parentNodeName = null);
+        void StartParameterParse(Compilation compilation, Type type);
+        void CompileInstanceStatement(Compilation compilation, SceneCreateStatement createStatement, Dictionary<string, string> parameters, string scope, string parentNodeName = null);
     }
 
     public class ConstructionModule : IConstructionModule
     {
-        private readonly Lazy<IOpeningModule> commonModule;
-        private readonly Lazy<IFunctionModule> functionModule;
-        private readonly Lazy<IClassModule> classModule;
+        private readonly Lazy<IOpeningModule> openingModule;
+        private readonly Lazy<IParameterModule> parameterModule;
 
         public ConstructionModule(IServiceProvider serviceProvider)
         {
-            commonModule = new Lazy<IOpeningModule>(() => (IOpeningModule)serviceProvider.GetService(typeof(IOpeningModule)));
-            functionModule = new Lazy<IFunctionModule>(() => (IFunctionModule)serviceProvider.GetService(typeof(IFunctionModule)));
-            classModule = new Lazy<IClassModule>(() => (IClassModule)serviceProvider.GetService(typeof(IClassModule)));
+            openingModule = new Lazy<IOpeningModule>(() => (IOpeningModule)serviceProvider.GetService(typeof(IOpeningModule)));
+            parameterModule = new Lazy<IParameterModule>(() => (IParameterModule)serviceProvider.GetService(typeof(IParameterModule)));
         }
 
-        private const string TypeName = "TypeName";
-        private const string ConstructorParameters = "ConstructorParameters";
-        private const string ParentNodename = "ParentNodename";
-        private readonly TokenParameters constructorTokenParameters = new TokenParameters {
-            Separators = new char[] { '(', ')', ',' }
-        };
+        private const string TheType = "ConstructionModule.TheType";
+        private const string ParentNodename = "ConstructionModule.ParentNodename";
 
         public void ExpectVarName(Compilation compilation, string token)
         {
@@ -46,75 +38,37 @@ namespace AutomationNodes.Core.Compile
         private void ExpectAssignment(Compilation compilation, string token)
         {
             if (token == "=") {
-                compilation.TokenHandler = commonModule.Value.ExpectNothingInParticular;
+                compilation.TokenHandler = openingModule.Value.ExpectNothingInParticular;
             } else {
                 throw new Exception($"Expected = but got {token}");
             }
         }
 
-        public void ExpectTypeName(Compilation compilation, string token)
+        public void StartParameterParse(Compilation compilation, Type type)
         {
-            compilation.AddState(TypeName, token);
-            compilation.TokenHandler = ExpectOpenBracket;
+            compilation.AddState(TheType, type);
+            compilation.AddState<string>(ParentNodename, null);
+            parameterModule.Value.StartParameterParse(compilation, OnCompleteParameterParse);
         }
 
-        public void ExpectOpenBracket(Compilation compilation, string token)
+        private void OnCompleteParameterParse(Compilation compilation, List<string> parameters)
         {
-            if (!token.Is("(")) {
-                throw new Exception($"Expected ( but got {token}");
-            }
-
-            compilation.AddState(ConstructorParameters, new List<string>());
-            compilation.TokenParameters.Push(constructorTokenParameters);
-            compilation.TokenHandler = ExpectConstructorParameters;
+            CompileStatement(compilation, compilation.GetState<Type>(TheType), parameters);
+            compilation.TokenHandler = openingModule.Value.ExpectNothingInParticular;
         }
 
-        private void ExpectConstructorParameters(Compilation compilation, string token)
-        {
-            if (token == ")") {
-                compilation.AddState<string>(ParentNodename, null);
-                CompileStatement(compilation);
-                compilation.TokenParameters.Pop();
-                compilation.TokenHandler = commonModule.Value.ExpectNothingInParticular;
-            } else if (token != ",") {
-                compilation.GetState<List<string>>(ConstructorParameters).Add(token.Trim());
-            }
-        }
-
-        public int CompileInstanceStatement(Compilation compilation, SceneCreateStatement createStatement, Dictionary<string, string> parameters, string scope, string parentNodeName = null)
+        public void CompileInstanceStatement(Compilation compilation, SceneCreateStatement createStatement, Dictionary<string, string> parameters, string scope, string parentNodeName = null)
         {
             compilation.State = new State();
             compilation.NewVariable(createStatement.NodeName, scope);
-            compilation.AddState(TypeName, createStatement.Type.Name.ToString());
-            compilation.AddState(ConstructorParameters, createStatement.Parameters.Select(p => parameters.TryGetValue(p, out var value) ? value : p).ToList());
             compilation.AddState(ParentNodename, parentNodeName);
-            CompileStatement(compilation);
-            return 0;
+            CompileStatement(compilation, createStatement.Type, createStatement.Parameters.Select(p => parameters.TryGetValue(p, out var value) ? value : p).ToList());
         }
 
-        private void CompileStatement(Compilation compilation)
+        private static void CompileStatement(Compilation compilation, Type type, List<string> parameterValues)
         {
-            var constructorParameters = compilation.GetState<List<string>>(ConstructorParameters);
-            compilation.Functions.TryGetValue(compilation.GetState(TypeName), out var function);
-            if (function != null) {
-                functionModule.Value.CompileFunctionInstance(compilation, function, constructorParameters);
-                return;
-            }
-
             if (compilation.State.Variable == null) {
                 compilation.NewVariable(Guid.NewGuid().ToString());
-            }
-
-            Type type;
-            compilation.Classes.TryGetValue(compilation.GetState(TypeName), out var nodeClass);
-            if (nodeClass != null) {
-                type = typeof(GenericNode);
-            } else {
-                type = compilation.TypesLibrary.TryGetValue(compilation.GetState(TypeName), out var t) ? t : null;
-            }
-
-            if (type == null) {
-                throw new Exception($"Unknown node type '{compilation.GetState(TypeName)}'. Are you missing a using?");
             }
 
             var variableName = compilation.State.Variable.Fullname;
@@ -122,15 +76,10 @@ namespace AutomationNodes.Core.Compile
             compilation.StatementsOutput.Peek().Add(new SceneCreateStatement {
                 TriggerAt = compilation.SceneTime,
                 NodeName = variableName,
-                Class = nodeClass?.ClassName,
                 Type = type,
-                Parameters = constructorParameters.ToArray(),
+                Parameters = parameterValues.ToArray(),
                 ParentNodeName = compilation.GetState(ParentNodename)
             });
-
-            if (nodeClass != null) {
-                classModule.Value.CompileClassInstance(compilation, nodeClass, constructorParameters);
-            }
         }
     }
 
@@ -141,5 +90,4 @@ namespace AutomationNodes.Core.Compile
             return keyValuePairs.ToDictionary(kv => kv.Key, kv => kv.Value);
         }
     }
-
 }

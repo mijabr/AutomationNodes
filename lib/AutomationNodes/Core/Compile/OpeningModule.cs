@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -35,8 +36,8 @@ namespace AutomationNodes.Core.Compile
             this.functionModule = functionModule;
         }
 
-        private const string OpeningToken = "OpeningToken";
-        private const string FunctionName = "FunctionName";
+        private const string OpeningToken = "OpeningModule.OpeningToken";
+        private const string FunctionName = "OpeningModule.FunctionName";
         private readonly TokenParameters commentParameters = new TokenParameters {
             Separators = new[] { '\r', '\n' }
         };
@@ -86,8 +87,15 @@ namespace AutomationNodes.Core.Compile
             var current = compilation.State;
 
             if (token.Is("(")) {
-                constructionModule.ExpectTypeName(compilation, compilation.GetState(OpeningToken));
-                constructionModule.ExpectOpenBracket(compilation, token);
+                if (compilation.Functions.TryGetValue(compilation.GetState(OpeningToken), out var function)) {
+                    functionModule.StartInstanceParameterParse(compilation, function);
+                } else if (compilation.Classes.TryGetValue(compilation.GetState(OpeningToken), out var theClass)) {
+                    classModule.StartInstanceParameterParse(compilation, theClass);
+                } else if (compilation.TypesLibrary.TryGetValue(compilation.GetState(OpeningToken), out var type)) {
+                    constructionModule.StartParameterParse(compilation, type);
+                } else {
+                    throw new Exception($"Unknown function, class or type '{compilation.GetState(OpeningToken)}'");
+                }
             } else if (token.Is(".")) {
                 current.Variable = compilation.Variables.TryGetValue(compilation.GetState(OpeningToken), out var v) ? v : null;
                 if (current.Variable == null) {
@@ -143,14 +151,17 @@ namespace AutomationNodes.Core.Compile
         public void ExpectFunctionOpenBracket(Compilation compilation, string token)
         {
             if (!token.Is("(")) {
-                throw new Exception($"Expected ( after {compilation.GetState(FunctionName)}");
+                throw new Exception($"Expected ( after '{compilation.GetState(FunctionName)}' but got {token}");
             }
+
             if (compilation.IsState(FunctionName, "set")) {
                 setFunctionModule.ExpectOpenBraket(compilation, token);
             } else if (compilation.IsState(FunctionName, "transition")) {
                 transitionFunctionModule.ExpectOpenBraket(compilation, token);
             } else if (compilation.IsState(FunctionName, "wait")) {
                 compilation.TokenHandler = ExpectWaitFunctionParameters;
+            } else if (compilation.Functions.TryGetValue(compilation.GetState(FunctionName), out var function)) {
+                functionModule.StartInstanceParameterParse(compilation, function, compilation.GetState(OpeningToken));
             } else {
                 throw new Exception($"Unknown function {compilation.GetState(FunctionName)}");
             }

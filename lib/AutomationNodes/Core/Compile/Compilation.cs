@@ -110,6 +110,8 @@ namespace AutomationNodes.Core.Compile
     {
         public TimeSpan TriggerAt { get; set; }
         public string NodeName { get; set; }
+
+        public abstract CompiledStatement Clone();
     }
 
     public class SceneCreateStatement : CompiledStatement
@@ -118,17 +120,40 @@ namespace AutomationNodes.Core.Compile
         public string Class { get; set; }
         public string[] Parameters { get; set; }
         public string ParentNodeName { get; set; }
+
+        public override CompiledStatement Clone() => new SceneCreateStatement {
+            TriggerAt = TriggerAt,
+            NodeName = NodeName,
+            Type = Type,
+            Class = Class,
+            Parameters = Parameters,
+            ParentNodeName = ParentNodeName
+        };
     }
 
     public class SceneSetPropertyStatement : CompiledStatement
     {
         public string PropertyName { get; set; }
         public string PropertyValue { get; set; }
+
+        public override CompiledStatement Clone() => new SceneSetPropertyStatement {
+            TriggerAt = TriggerAt,
+            NodeName = NodeName,
+            PropertyName = PropertyName,
+            PropertyValue = PropertyValue
+        };
     }
 
     public class SceneSetTransitionStatement : CompiledStatement
     {
         public Dictionary<string, string> TransitionProperties { get; set; }
         public TimeSpan Duration { get; set; }
+
+        public override CompiledStatement Clone() => new SceneSetTransitionStatement {
+            TriggerAt = TriggerAt,
+            NodeName = NodeName,
+            TransitionProperties = TransitionProperties,
+            Duration = Duration
+        };
     }
 }

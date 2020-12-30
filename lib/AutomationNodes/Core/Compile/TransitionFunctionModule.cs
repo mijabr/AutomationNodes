@@ -19,9 +19,9 @@ namespace AutomationNodes.Core.Compile
             openingModule = new Lazy<IOpeningModule>(() => (IOpeningModule)serviceProvider.GetService(typeof(IOpeningModule)));
         }
 
-        private const string TransitionFunctionParameterName = "TransitionFunctionParameterName";
-        private const string TransitionParameters = "TransitionParameters";
-        private const string Duration = "Duration";
+        private const string TransitionFunctionParameterName = "TransitionFunctionModule.TransitionFunctionParameterName";
+        private const string TransitionParameters = "TransitionFunctionModule.TransitionParameters";
+        private const string Duration = "TransitionFunctionModule.Duration";
         private readonly TokenParameters transitionFunctiontokenParameters = new TokenParameters {
             Separators = new char[] { '(', ')', ':', '[', ']', ',' },
             TokenGroups = new List<TokenGroup> { new TokenGroup('(', ')') }

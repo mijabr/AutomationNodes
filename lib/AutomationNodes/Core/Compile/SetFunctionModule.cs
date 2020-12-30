@@ -18,8 +18,8 @@ namespace AutomationNodes.Core.Compile
             openingModule = new Lazy<IOpeningModule>(() => (IOpeningModule)serviceProvider.GetService(typeof(IOpeningModule)));
         }
 
-        private const string SetFunctionParameterName = "SetFunctionParameterName";
-        private const string SetFunctionParameterValue = "SetFunctionParameterValue";
+        private const string SetFunctionParameterName = "SetFunctionModule.SetFunctionParameterName";
+        private const string SetFunctionParameterValue = "SetFunctionModule.SetFunctionParameterValue";
         private readonly TokenParameters setFunctiontokenParameters = new TokenParameters {
             Separators = new char[] { '(', ')', ':', '[', ']', ',' },
             TokenGroups = new List<TokenGroup> { new TokenGroup('(', ')') }

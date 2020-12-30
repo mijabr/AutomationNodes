@@ -94,6 +94,7 @@ namespace AutomationNodesTests
             {
                 var serviceProvider = new Mock<IServiceProvider>();
                 var constructionModule = new ConstructionModule(serviceProvider.Object);
+                var parameterModule = new ParameterModule();
                 var setFunctionModule = new SetFunctionModule(serviceProvider.Object);
                 var transitionFunctionModule = new TransitionFunctionModule(serviceProvider.Object);
                 var classModule = new ClassModule(serviceProvider.Object);
@@ -101,6 +102,7 @@ namespace AutomationNodesTests
                 var openingModule = new OpeningModule(constructionModule, setFunctionModule, transitionFunctionModule, classModule, functionModule);
                 serviceProvider.Setup(s => s.GetService(It.Is<Type>(t => t == typeof(IOpeningModule)))).Returns(openingModule);
                 serviceProvider.Setup(s => s.GetService(It.Is<Type>(t => t == typeof(IConstructionModule)))).Returns(constructionModule);
+                serviceProvider.Setup(s => s.GetService(It.Is<Type>(t => t == typeof(IParameterModule)))).Returns(parameterModule);
                 serviceProvider.Setup(s => s.GetService(It.Is<Type>(t => t == typeof(IFunctionModule)))).Returns(functionModule);
                 serviceProvider.Setup(s => s.GetService(It.Is<Type>(t => t == typeof(IClassModule)))).Returns(classModule);
                 serviceProvider.Setup(s => s.GetService(It.Is<Type>(t => t == typeof(ISetFunctionModule)))).Returns(setFunctionModule);
@@ -131,6 +133,17 @@ namespace AutomationNodesTests
 
             statements.Count.Should().Be(1);
             statements[0].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, "1");
+        }
+
+        [Test]
+        public void Run_ShouldThrowError_GivenUnknownTypeToken()
+        {
+            var state = new TestState();
+            const string script = "Something(1);";
+
+            Action action = () => state.SceneCompiler.Compile(script);
+
+            action.Should().Throw<Exception>().WithMessage("Unknown function, class or type 'something'");
         }
 
         [Test]
@@ -703,6 +716,54 @@ namespace AutomationNodesTests
             flap();
             flap();
             flap();
+            ";
+
+            var statements = state.SceneCompiler.Compile(script);
+
+            statements.Count.Should().Be(22);
+            statements[0].ShouldBeCreateFromClassStatement("myBird", "Bird", typeof(GenericNode), TimeSpan.Zero, new[] { "100px", "200px" });
+            statements[1].ShouldBeCreateChildStatement("myBird-body", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-body.png", "100px", "200px" });
+            statements[2].ShouldBeSetPropertyStatement("myBird-body", "z-index", "1", TimeSpan.Zero);
+            statements[3].ShouldBeCreateChildStatement("myBird-leftWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-left-wing.png", "100px", "200px" });
+            statements[4].ShouldBeCreateChildStatement("myBird-rightWing", "myBird", typeof(Image), TimeSpan.Zero, new[] { "assets/flying-bird-right-wing.png", "100px", "200px" });
+            statements[5].ShouldBeSetPropertyStatement("myBird", "left", "500px", TimeSpan.Zero);
+            statements[6].ShouldBeSetPropertyStatement("myBird", "top", "300px", TimeSpan.Zero);
+            statements[7].ShouldBeSetTransitionStatement("myBird-leftWing", new Dictionary<string, string> { { "transform", "rotate(-80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.Zero);
+            statements[8].ShouldBeSetTransitionStatement("myBird-leftWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(300));
+            statements[9].ShouldBeSetTransitionStatement("myBird-rightWing", new Dictionary<string, string> { { "transform", "rotate(80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.Zero);
+            statements[10].ShouldBeSetTransitionStatement("myBird-rightWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(300));
+            statements[11].ShouldBeSetPropertyStatement("myBird-body", "color", "red", TimeSpan.Zero);
+            statements[12].ShouldBeSetTransitionStatement("myBird-leftWing", new Dictionary<string, string> { { "transform", "rotate(-80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(600));
+            statements[13].ShouldBeSetTransitionStatement("myBird-leftWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(900));
+            statements[14].ShouldBeSetTransitionStatement("myBird-rightWing", new Dictionary<string, string> { { "transform", "rotate(80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(600));
+            statements[15].ShouldBeSetTransitionStatement("myBird-rightWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(900));
+            statements[16].ShouldBeSetPropertyStatement("myBird-body", "color", "red", TimeSpan.Zero);
+            statements[17].ShouldBeSetTransitionStatement("myBird-leftWing", new Dictionary<string, string> { { "transform", "rotate(-80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1200));
+            statements[18].ShouldBeSetTransitionStatement("myBird-leftWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1500));
+            statements[19].ShouldBeSetTransitionStatement("myBird-rightWing", new Dictionary<string, string> { { "transform", "rotate(80deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1200));
+            statements[20].ShouldBeSetTransitionStatement("myBird-rightWing", new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1500));
+            statements[21].ShouldBeSetPropertyStatement("myBird-body", "color", "red", TimeSpan.Zero);
+        }
+
+        [Test]
+        public void Run_ShouldMoveClassUsingClassFunction_GivenFunctionInsideClass()
+        {
+            var state = new TestState();
+            const string script = @"
+            class Bird(width,height) {
+                var body = Image(assets/flying-bird-body.png,%width%,%height%).set([z-index:1]);
+                var leftWing = Image(assets/flying-bird-left-wing.png,%width%,%height%);
+                var rightWing = Image(assets/flying-bird-right-wing.png,%width%,%height%);
+                function flap() {
+                    leftWing.transition([transform:rotate(-80deg),duration:300]).transition([transform:rotate(0deg),duration:300]);
+                    rightWing.transition([transform:rotate(80deg),duration:300]).transition([transform:rotate(0deg),duration:300]);
+                    body.set([color:red]);
+                };
+            };
+            var myBird = Bird(100px,200px).set([left:500px,top:300px]);
+            myBird.flap();
+            myBird.flap();
+            myBird.flap();
             ";
 
             var statements = state.SceneCompiler.Compile(script);
