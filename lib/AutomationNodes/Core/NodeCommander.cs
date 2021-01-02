@@ -13,6 +13,7 @@ namespace AutomationNodes.Core
         T CreateWorld<T>(string connectionId) where T : INode;
         void SetProperty(INode node, string name, string value);
         void SetTransition(INode node, Dictionary<string, string> transitionProperties, TimeSpan duration);
+        void AddKeyframe(string connectionId, Dictionary<string, string> keyframeProperties, string keyframeName, string keyframePercent);
     }
 
     public class NodeCommander : INodeCommander
@@ -104,6 +105,17 @@ namespace AutomationNodes.Core
                 { "id", node.Id },
                 { "properties", transitionProperties },
                 { "duration", duration.TotalMilliseconds }
+            });
+        }
+
+        public void AddKeyframe(string connectionId, Dictionary<string, string> keyframeProperties, string keyframeName, string keyframePercent)
+        {
+            hubManager.Send(connectionId, new Dictionary<string, object>
+            {
+                { "message", "AddKeyframe" },
+                { "properties", keyframeProperties },
+                { "keyframename", keyframeName },
+                { "keyframepercent", keyframePercent }
             });
         }
     }

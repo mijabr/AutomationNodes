@@ -79,6 +79,18 @@ Image(assets/rocket.png).set([left:20%,top:20%]).transition([left:50%,top:50%,du
 ```
 The transition command takes an array of transition properties, one of which must be 'duration'. Duration is in milliseconds.
 
+##### Perform animations using keyframes
+
+```
+keyframe([keyframe-name:spin,keyframe-percent:0%,transform:rotate(0deg)]);
+keyframe([keyframe-name:spin,keyframe-percent:33%,transform:rotate(120deg)]);
+keyframe([keyframe-name:spin,keyframe-percent:66%,transform:rotate(240deg)]);
+keyframe([keyframe-name:spin,keyframe-percent:100%,transform:rotate(360deg)]);
+
+var ship = Image(assets/ship-0001.svg,100px,100px);
+ship.set([animation-duration:0.5s,animation-name:spin,animation-iteration-count:infinite,animation-direction:alternate,animation-timing-function:linear]);
+```
+
 ##### Wait command
 
 ```

@@ -156,4 +156,19 @@ namespace AutomationNodes.Core.Compile
             Duration = Duration
         };
     }
+
+    public class SceneKeyframeStatement : CompiledStatement
+    {
+        public Dictionary<string, string> KeyframeProperties { get; set; }
+        public string KeyframeName { get; set; }
+        public string KeyframePercent { get; set; }
+
+        public override CompiledStatement Clone() => new SceneKeyframeStatement {
+            TriggerAt = TriggerAt,
+            NodeName = NodeName,
+            KeyframeProperties = KeyframeProperties,
+            KeyframeName = KeyframeName,
+            KeyframePercent = KeyframePercent
+        };
+    }
 }

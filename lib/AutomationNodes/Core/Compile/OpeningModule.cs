@@ -19,6 +19,7 @@ namespace AutomationNodes.Core.Compile
         private readonly IConstructionModule constructionModule;
         private readonly ISetFunctionModule setFunctionModule;
         private readonly ITransitionFunctionModule transitionFunctionModule;
+        private readonly IKeyframeModule keyframeModule;
         private readonly IClassModule classModule;
         private readonly IFunctionModule functionModule;
 
@@ -26,12 +27,14 @@ namespace AutomationNodes.Core.Compile
             IConstructionModule constructionModule,
             ISetFunctionModule setFunctionModule,
             ITransitionFunctionModule transitionFunctionModule,
+            IKeyframeModule keyframeModule,
             IClassModule classModule,
             IFunctionModule functionModule)
         {
             this.constructionModule = constructionModule;
             this.setFunctionModule = setFunctionModule;
             this.transitionFunctionModule = transitionFunctionModule;
+            this.keyframeModule = keyframeModule;
             this.classModule = classModule;
             this.functionModule = functionModule;
         }
@@ -55,6 +58,8 @@ namespace AutomationNodes.Core.Compile
                 compilation.TokenHandler = ExpectUsing;
             } else if (token.IsKeyword("var")) {
                 compilation.TokenHandler = constructionModule.ExpectVarName;
+            } else if (token.IsKeyword("keyframe")) {
+                compilation.TokenHandler = keyframeModule.ExpectOpenBraket;
             } else if (token.IsKeyword("function")) {
                 compilation.TokenHandler = functionModule.ExpectFunctionName;
             } else if (token.IsKeyword("class")) {

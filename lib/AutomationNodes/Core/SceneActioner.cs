@@ -80,6 +80,7 @@ namespace AutomationNodes.Core
                 SceneCreateStatement createStatement => GetCreateAction(runState, createStatement),
                 SceneSetPropertyStatement setStatement => GetSetAction(runState, setStatement),
                 SceneSetTransitionStatement transitionStatement => GetTransitionAction(runState, transitionStatement),
+                SceneKeyframeStatement keyframeStatement => GetKeyframeAction(runState, keyframeStatement),
                 _ => throw new NotImplementedException()
             };
         }
@@ -117,6 +118,13 @@ namespace AutomationNodes.Core
             return () => {
                 var node = runState.GetNodeVariable(transitionStatement.NodeName);
                 nodeCommander.SetTransition(node, transitionStatement.TransitionProperties, transitionStatement.Duration);
+            };
+        }
+
+        private Action GetKeyframeAction(RunState runState, SceneKeyframeStatement keyframeStatement)
+        {
+            return () => {
+                nodeCommander.AddKeyframe(runState.ConnectionId, keyframeStatement.KeyframeProperties, keyframeStatement.KeyframeName, keyframeStatement.KeyframePercent);
             };
         }
 

@@ -64,21 +64,42 @@ namespace AutomationNodesTests
             );
         }
 
-        public static void ShouldBeSetTransitionStatement(this CompiledStatement sceneStatement, string nodeName, Dictionary<string, string> transitionName, TimeSpan duration, TimeSpan triggerAt)
+        public static void ShouldBeSetTransitionStatement(this CompiledStatement sceneStatement, string nodeName, Dictionary<string, string> transitionProperties, TimeSpan duration, TimeSpan triggerAt)
         {
             sceneStatement.Should().BeEquivalentTo(new SceneSetTransitionStatement {
                 NodeName = nodeName,
-                TransitionProperties = transitionName,
+                TransitionProperties = transitionProperties,
                 Duration = duration,
                 TriggerAt = triggerAt
             });
         }
 
-        public static void ShouldBeSetTransitionStatement(this CompiledStatement sceneStatement, Dictionary<string, string> transitionName, TimeSpan duration, TimeSpan triggerAt)
+        public static void ShouldBeSetTransitionStatement(this CompiledStatement sceneStatement, Dictionary<string, string> transitionProperties, TimeSpan duration, TimeSpan triggerAt)
         {
             sceneStatement.Should().BeEquivalentTo(new SceneSetTransitionStatement {
-                TransitionProperties = transitionName,
+                TransitionProperties = transitionProperties,
                 Duration = duration,
+                TriggerAt = triggerAt
+            }, opt => opt.Excluding(su => su.NodeName));
+        }
+
+        public static void ShouldBeKeyframeStatement(this CompiledStatement sceneStatement, string nodeName, Dictionary<string, string> keyframeProperties, string keyframeName, string keyframePercent, TimeSpan triggerAt)
+        {
+            sceneStatement.Should().BeEquivalentTo(new SceneKeyframeStatement {
+                NodeName = nodeName,
+                KeyframeProperties = keyframeProperties,
+                KeyframeName = keyframeName,
+                KeyframePercent = keyframePercent,
+                TriggerAt = triggerAt
+            });
+        }
+
+        public static void ShouldBeKeyframeStatement(this CompiledStatement sceneStatement, Dictionary<string, string> keyframeProperties, string keyframeName, string keyframePercent, TimeSpan triggerAt)
+        {
+            sceneStatement.Should().BeEquivalentTo(new SceneKeyframeStatement {
+                KeyframeProperties = keyframeProperties,
+                KeyframeName = keyframeName,
+                KeyframePercent = keyframePercent,
                 TriggerAt = triggerAt
             }, opt => opt.Excluding(su => su.NodeName));
         }
@@ -97,9 +118,10 @@ namespace AutomationNodesTests
                 var parameterModule = new ParameterModule();
                 var setFunctionModule = new SetFunctionModule(serviceProvider.Object);
                 var transitionFunctionModule = new TransitionFunctionModule(serviceProvider.Object);
+                var keyframeModule = new KeyframeModule(serviceProvider.Object);
                 var classModule = new ClassModule(serviceProvider.Object);
                 var functionModule = new FunctionModule(serviceProvider.Object);
-                var openingModule = new OpeningModule(constructionModule, setFunctionModule, transitionFunctionModule, classModule, functionModule);
+                var openingModule = new OpeningModule(constructionModule, setFunctionModule, transitionFunctionModule, keyframeModule, classModule, functionModule);
                 serviceProvider.Setup(s => s.GetService(It.Is<Type>(t => t == typeof(IOpeningModule)))).Returns(openingModule);
                 serviceProvider.Setup(s => s.GetService(It.Is<Type>(t => t == typeof(IConstructionModule)))).Returns(constructionModule);
                 serviceProvider.Setup(s => s.GetService(It.Is<Type>(t => t == typeof(IParameterModule)))).Returns(parameterModule);
@@ -241,6 +263,33 @@ namespace AutomationNodesTests
             statements[3].ShouldBeSetPropertyStatement(nodeName, "top", "100px", TimeSpan.Zero);
             statements[4].ShouldBeSetTransitionStatement(nodeName, new Dictionary<string, string> { { "left", "0px" }, { "top", "0px" } },
                 TimeSpan.FromSeconds(1), TimeSpan.Zero);
+        }
+
+        [Test]
+        public void Run_ShouldSetKeyframes_GivenKeyframeCommand()
+        {
+            var state = new TestState();
+            const string script = @"
+                keyframe([keyframe-name:spin,keyframe-percent:0%,transform:rotate(0deg)]);
+                keyframe([keyframe-name:spin,keyframe-percent:33%,transform:rotate(120deg)]);
+                keyframe([keyframe-name:spin,keyframe-percent:66%,transform:rotate(240deg)]);
+                keyframe([keyframe-name:spin,keyframe-percent:100%,transform:rotate(360deg)]);
+                Div(1).set([animation-duration:0.1s,animation-name:spin,animation-iteration-count:infinite,animation-direction:alternate]);
+            ";
+
+            var statements = state.SceneCompiler.Compile(script);
+
+            statements.Count.Should().Be(9);
+            var nodeName = (statements[4] as SceneCreateStatement).NodeName;
+            statements[0].ShouldBeKeyframeStatement(new Dictionary<string, string> { { "transform", "rotate(0deg)" } }, "spin", "0%", TimeSpan.Zero);
+            statements[1].ShouldBeKeyframeStatement(new Dictionary<string, string> { { "transform", "rotate(120deg)" } }, "spin", "33%", TimeSpan.Zero);
+            statements[2].ShouldBeKeyframeStatement(new Dictionary<string, string> { { "transform", "rotate(240deg)" } }, "spin", "66%", TimeSpan.Zero);
+            statements[3].ShouldBeKeyframeStatement(new Dictionary<string, string> { { "transform", "rotate(360deg)" } }, "spin", "100%", TimeSpan.Zero);
+            statements[4].ShouldBeCreateStatement(typeof(Div), TimeSpan.Zero, "1");
+            statements[5].ShouldBeSetPropertyStatement(nodeName, "animation-duration", "0.1s", TimeSpan.Zero);
+            statements[6].ShouldBeSetPropertyStatement(nodeName, "animation-name", "spin", TimeSpan.Zero);
+            statements[7].ShouldBeSetPropertyStatement(nodeName, "animation-iteration-count", "infinite", TimeSpan.Zero);
+            statements[8].ShouldBeSetPropertyStatement(nodeName, "animation-direction", "alternate", TimeSpan.Zero);
         }
 
         [Test]
@@ -802,13 +851,10 @@ namespace AutomationNodesTests
                 var body = Image(assets/flying-bird-body.png,%width%,%height%).set([z-index:1]);
                 var leftWing = Image(assets/flying-bird-left-wing.png,%width%,%height%);
                 var rightWing = Image(assets/flying-bird-right-wing.png,%width%,%height%);
-                flap(duration) {
-                    leftWing.transition([transform:rotate(-80deg)]);
-                    rightWing.transition([transform:rotate(80deg)]);
-                    @%duration%
-                    leftWing.transition([transform:rotate(0deg)]);
-                    rightWing.transition([transform:rotate(0deg)]);
-                }
+                function flap() {
+                    leftWing.keyframe([keyframe-name:flap-left-wing,keyframe-percent:0%,transform:rotate(0deg)]).keyframe([keyframe-name:flap-left-wing,keyframe-percent:100%,transform:rotate(-80deg)]);
+                    rightWing.keyframe([keyframe-name:flap-right-wing,keyframe-percent:0%,transform:rotate(0deg)])..keyframe([keyframe-name:flap-right-wing,keyframe-percent:100%,transform:rotate(80deg)]);
+                };
             };";
 
             var statements = state.SceneCompiler.Compile(script);
