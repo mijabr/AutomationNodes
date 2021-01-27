@@ -78,13 +78,39 @@ namespace AutomationNodes.Core.Compile
 
         private void ExpectUsing(Compilation compilation, string token)
         {
-            try {
-                var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                ScanAssemblyForNodes(compilation, Assembly.LoadFrom($"{path}\\{token}"));
-            } catch (FileNotFoundException x) {
-                ScanAssemblyForNodes(compilation, Assembly.LoadFrom(token));
+            var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            var filePath = string.Empty;
+            var assembly = TryLoadAssembly($"{path}\\{token}");
+
+            if (assembly == null) {
+                assembly = TryLoadAssembly($"{token}");
             }
+
+            if (assembly == null) {
+                assembly = TryLoadAssembly($"{path}\\{token}.dll");
+            }
+
+            if (assembly == null) {
+                assembly = TryLoadAssembly($"{token}.dll");
+            }
+
+            if (assembly == null) {
+                throw new Exception($"Could not load assembly: {token}");
+            }
+
+            ScanAssemblyForNodes(compilation, assembly);
+
             compilation.TokenHandler = ExpectNothingInParticular;
+        }
+
+        private Assembly TryLoadAssembly(string filePath)
+        {
+            try {
+                return Assembly.LoadFrom(filePath);
+            } catch (Exception x) {
+                Console.WriteLine($"Could not load assembly: {filePath} Error: {x.Message}");
+                return null;
+            }
         }
 
         private void ExpectConstructorOpenBracketOrDot(Compilation compilation, string token)
