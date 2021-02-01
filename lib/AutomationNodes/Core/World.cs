@@ -1,16 +1,16 @@
 ﻿using AutomationNodes.Nodes;
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace AutomationNodes.Core
 {
-    //public interface IWorld
-    //{
-    //    Guid Id { get; }
-
-    //    void OnCreated();
-    //}
-
     public class World : Div
+    {
+        public virtual Task OnMessage(string message) => Task.CompletedTask;
+    }
+
+    public class Worlds : Dictionary<string, World>
     {
     }
 }

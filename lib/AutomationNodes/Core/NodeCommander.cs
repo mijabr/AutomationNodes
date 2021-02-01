@@ -11,8 +11,9 @@ namespace AutomationNodes.Core
         T CreateChildNode<T>(INode parent, params object[] parameters) where T : INode;
         object CreateChildNode(Type type, INode parent, params object[] parameters);
         T CreateWorld<T>(string connectionId) where T : INode;
-        void SetProperty(INode node, string name, string value);
-        void SetTransition(INode node, Dictionary<string, string> transitionProperties, TimeSpan duration);
+        void SetProperty(INode node, string propertyName, string propertyValue);
+        void SetProperties(INode node, Dictionary<string, string> properties);
+        void SetTransition(INode node, Dictionary<string, string> transitionProperties, TimeSpan duration, bool destroyAfter = false);
         void AddKeyframe(string connectionId, Dictionary<string, string> keyframeProperties, string keyframeName, string keyframePercent);
     }
 
@@ -86,25 +87,34 @@ namespace AutomationNodes.Core
             return node;
         }
 
-        public void SetProperty(INode node, string name, string value)
+        public void SetProperty(INode node, string propertyName, string propertyValue)
         {
             hubManager.Send(node.ConnectionId, new Dictionary<string, object>
             {
                 { "message", "SetProperty" },
                 { "id", node.Id },
-                { "name", name },
-                { "value", value }
+                { "name", propertyName },
+                { "value", propertyValue }
             });
         }
 
-        public void SetTransition(INode node, Dictionary<string, string> transitionProperties, TimeSpan duration)
+        public void SetProperties(INode node, Dictionary<string, string> properties)
+        {
+            foreach(var property in properties)
+            {
+                SetProperty(node, property.Key, property.Value);
+            }
+        }
+
+        public void SetTransition(INode node, Dictionary<string, string> transitionProperties, TimeSpan duration, bool destroyAfter = false)
         {
             hubManager.Send(node.ConnectionId, new Dictionary<string, object>
             {
                 { "message", "SetTransition" },
                 { "id", node.Id },
                 { "properties", transitionProperties },
-                { "duration", duration.TotalMilliseconds }
+                { "duration", duration.TotalMilliseconds },
+                { "destroyAfter", destroyAfter }
             });
         }
 

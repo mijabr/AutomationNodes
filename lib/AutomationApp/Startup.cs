@@ -35,6 +35,7 @@ namespace AutomationApp
             services.AddSingleton(typeof(IKeyframeModule), typeof(KeyframeModule));
             services.AddSingleton(typeof(IFunctionModule), typeof(FunctionModule));
             services.AddSingleton(typeof(IClassModule), typeof(ClassModule));
+            services.AddSingleton(typeof(Worlds));
 
             services.AddAutomationArtifactsFromAssembly(Assembly.Load("AutomationNodes"));
             services.AddAutomationArtifactsFromAssembly(Assembly.Load("AutomationPlayground"));

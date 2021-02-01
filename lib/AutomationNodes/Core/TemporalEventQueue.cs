@@ -54,12 +54,9 @@ namespace AutomationNodes.Core
                 {
                     e.Action?.Invoke();
 
-                    if (e.RegardingNode != null)
+                    if (subscriptions.TryGetValue(e.RegardingNode, out var regardingNodeSubscriptions))
                     {
-                        if (subscriptions.TryGetValue(e.RegardingNode, out var regardingNodeSubscriptions))
-                        {
-                            regardingNodeSubscriptions.ForEach(handler => handler.OnTemporalEvent(e));
-                        }
+                        regardingNodeSubscriptions.ForEach(handler => handler.OnTemporalEvent(e));
                     }
                 });
 

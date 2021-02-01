@@ -13,22 +13,24 @@ namespace AutomationApp.Hubs
     public class AutomationHub : Hub
     {
         private readonly INodeCommander nodeCommander;
+        private readonly Worlds worlds;
 
-        public AutomationHub(INodeCommander nodeCommander)
+        public AutomationHub(INodeCommander nodeCommander, Worlds worlds)
         {
             this.nodeCommander = nodeCommander;
+            this.worlds = worlds;
         }
 
-        public async Task SendMessage(string user, string message)
+        public async Task SendMessage(string message)
         {
-            await Clients.All.SendAsync("ReceiveMessage", user, message);
+            await worlds[Context.ConnectionId].OnMessage(message);
         }
 
         public override async Task OnConnectedAsync()
         {
             await base.OnConnectedAsync();
 
-            nodeCommander.CreateWorld<MijabrWorld>(Context.ConnectionId);
+            worlds[Context.ConnectionId] = nodeCommander.CreateWorld<MijabrWorld>(Context.ConnectionId);
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)

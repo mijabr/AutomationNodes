@@ -197,3 +197,5 @@ namespace AutomationPlayground.Nodes
 }
 ```
 
+Nice and free online image editor --> https://www.photopea.com/
+
