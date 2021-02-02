@@ -1,10 +1,8 @@
-﻿using AutomationNodes;
-using AutomationNodes.Core;
+﻿using AutomationNodes.Core;
 using AutomationPlayground.Worlds;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,6 +19,13 @@ namespace AutomationApp.Hubs
             this.worlds = worlds;
         }
 
+        public async Task SendCapabilities(Caps caps)
+        {
+            worlds[Context.ConnectionId] = nodeCommander.CreateWorld<MijabrWorld>(Context.ConnectionId, caps);
+
+            await Task.CompletedTask;
+        }
+
         public async Task SendMessage(string message)
         {
             await worlds[Context.ConnectionId].OnMessage(message);
@@ -29,8 +34,6 @@ namespace AutomationApp.Hubs
         public override async Task OnConnectedAsync()
         {
             await base.OnConnectedAsync();
-
-            worlds[Context.ConnectionId] = nodeCommander.CreateWorld<MijabrWorld>(Context.ConnectionId);
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)

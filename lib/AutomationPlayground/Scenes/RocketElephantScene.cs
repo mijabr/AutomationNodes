@@ -11,9 +11,9 @@ namespace AutomationPlayground.Scenes
             this.sceneActioner = sceneActioner;
         }
 
-        public void Run(string connectionId)
+        public void Run(ClientContext clientContext)
         {
-            sceneActioner.Run(script, connectionId);
+            sceneActioner.Run(script, clientContext.ConnectionId);
         }
 
         private const string script = @"

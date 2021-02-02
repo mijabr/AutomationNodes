@@ -10,7 +10,7 @@ namespace AutomationNodes.Core
         object CreateNode(Type type, string connectionId, params object[] parameters);
         T CreateChildNode<T>(INode parent, params object[] parameters) where T : INode;
         object CreateChildNode(Type type, INode parent, params object[] parameters);
-        T CreateWorld<T>(string connectionId) where T : INode;
+        T CreateWorld<T>(string connectionId, params object[] parameters) where T : INode;
         void SetProperty(INode node, string propertyName, string propertyValue);
         void SetProperties(INode node, Dictionary<string, string> properties);
         void SetTransition(INode node, Dictionary<string, string> transitionProperties, TimeSpan duration, bool destroyAfter = false);
@@ -50,7 +50,7 @@ namespace AutomationNodes.Core
             return DoCreateNode(type, parent.ConnectionId, parent, parameters);
         }
 
-        public T CreateWorld<T>(string connectionId) where T : INode
+        public T CreateWorld<T>(string connectionId, params object[] parameters) where T : INode
         {
             var world = (T)ConstructNode(typeof(T), connectionId, null);
 
@@ -60,7 +60,7 @@ namespace AutomationNodes.Core
                 { "id", world.Id }
             });
 
-            world.OnCreated(null);
+            world.OnCreated(parameters);
 
             return world;
         }

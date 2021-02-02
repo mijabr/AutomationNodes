@@ -16,9 +16,9 @@ namespace AutomationPlayground.Scenes
             this.nodeCommander = nodeCommander;
         }
 
-        public void Run(string connectionId)
+        public void Run(ClientContext clientContext)
         {
-            var state = new State(connectionId);
+            var state = new State(clientContext);
             Task.Run(() => RunAsync(state));
         }
 
@@ -32,13 +32,13 @@ namespace AutomationPlayground.Scenes
 
         private class State
         {
-            public State(string ConnectionId)
+            public State(ClientContext ClientContext)
             {
-                this.ConnectionId = ConnectionId;
+                this.ClientContext = ClientContext;
             }
 
+            public ClientContext ClientContext { get; set; }
             public Random Random { get; } = new();
-            public string ConnectionId { get; }
             public Stopwatch Stopwatch { get; } = Stopwatch.StartNew();
             public Queue<Star> Stars { get; } = new();
             public TimeSpan FlowRate { get; set; } = TimeSpan.FromMilliseconds(30);
@@ -100,33 +100,36 @@ namespace AutomationPlayground.Scenes
 
         private Star GetStar(State state)
         {
-            Star star;
-            if (state.Stars.Count > 0 && state.Stopwatch.Elapsed > state.Stars.Peek().StartedAt + starLifetime + TimeSpan.FromSeconds(1))
+            var star = GetOrCreateStar(state);
+
+            nodeCommander.SetProperties(star.Node, new Dictionary<string, string>
             {
-                star = state.Stars.Dequeue();
-            }
-            else
-            {
-                star = NewStar(state);
-            }
-            nodeCommander.SetProperty(star.Node, "transition-timing-function", " ");
-            nodeCommander.SetProperty(star.Node, "transition-duration", " ");
-            nodeCommander.SetProperty(star.Node, "position", "absolute");
-            nodeCommander.SetProperty(star.Node, "color", "#808080");
-            nodeCommander.SetProperty(star.Node, "left", "50%");
-            nodeCommander.SetProperty(star.Node, "top", "50%");
+                ["transition-timing-function"] = " ",
+                ["transition-duration"] = " ",
+                ["position"] = "absolute",
+                ["color"] = "#808080",
+                ["left"] = "50%",
+                ["top"] = "50%",
+                ["font-size"] = "1em"
+            });
 
             state.Stars.Enqueue(star);
             return star;
         }
 
-        private Star NewStar(State state)
+        private Star GetOrCreateStar(State state)
         {
-            Star star = new Star
+            if (state.Stars.Count > 0 && state.Stopwatch.Elapsed > state.Stars.Peek().StartedAt + starLifetime + TimeSpan.FromSeconds(1))
             {
-                Node = nodeCommander.CreateNode<Text>(state.ConnectionId, ".")
-            };
-            return star;
+                return state.Stars.Dequeue();
+            }
+            else
+            {
+                return new Star
+                {
+                    Node = nodeCommander.CreateNode<Text>(state.ClientContext.ConnectionId, ".")
+                };
+            }
         }
     }
 }

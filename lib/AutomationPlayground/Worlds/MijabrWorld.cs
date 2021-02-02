@@ -1,6 +1,7 @@
 ﻿using AutomationNodes.Core;
 using AutomationPlayground.Scenes;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace AutomationPlayground.Worlds
@@ -15,12 +16,12 @@ namespace AutomationPlayground.Worlds
         public MijabrWorld(
             INodeCommander nodeCommander,
             MijabrScene mijabr,
-            StarFieldScene starFieldScene,
+            StarFieldScene starField,
             MijabrProfile mijabrProfile)
         {
             this.nodeCommander = nodeCommander;
             this.mijabr = mijabr;
-            this.starField = starFieldScene;
+            this.starField = starField;
             this.mijabrProfile = mijabrProfile;
         }
 
@@ -36,16 +37,35 @@ namespace AutomationPlayground.Worlds
             }
         }
 
+        private ClientContext clientContext = new();
+
         public override void OnCreated(object[] parameters)
         {
             base.OnCreated(parameters);
 
-            nodeCommander.SetProperty(this, "position", "relative");
-            nodeCommander.SetProperty(this, "width", "900px");
-            nodeCommander.SetProperty(this, "height", "900px");
-            nodeCommander.SetProperty(this, "color", "white");
-            nodeCommander.SetProperty(this, "background-color", "black");
-            nodeCommander.SetProperty(this, "overflow", "hidden");
+            clientContext.ConnectionId = ConnectionId;
+
+            if (parameters?.Length > 0)
+            {
+                clientContext.Caps = parameters[0] as Caps;
+                if (clientContext.Caps.isMobile)
+                {
+                    clientContext.ImageScaling = 2.0;
+                    clientContext.FontScaling = 1.3;
+                }
+            }
+
+            nodeCommander.SetProperties(this, new Dictionary<string, string>
+            {
+                ["position"] = "relative",
+                ["width"] = "100%",
+                ["height"] = "100%",
+                ["color"] = "white",
+                ["background-color"] = "black",
+                ["overflow"] = "hidden",
+                ["font-family"] = "verdana",
+                ["font-size"] = clientContext.ScaledFont(1)
+            });
 
             Start(starField);
             Start(mijabr, TimeSpan.FromSeconds(2));
@@ -60,7 +80,7 @@ namespace AutomationPlayground.Worlds
                     await Task.Delay(startTime.Value);
                 }
 
-                scene.Run(ConnectionId);
+                scene.Run(clientContext);
             });
         }
     }

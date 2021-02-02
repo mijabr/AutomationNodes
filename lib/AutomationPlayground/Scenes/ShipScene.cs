@@ -12,9 +12,9 @@ namespace AutomationPlayground.Worlds
             this.nodeCommander = nodeCommander;
         }
 
-        public void Run(string connectionId)
+        public void Run(ClientContext clientContext)
         {
-            nodeCommander.CreateNode<Ship>(connectionId)
+            nodeCommander.CreateNode<Ship>(clientContext.ConnectionId)
                 .SetSize("150px")
                 .FlyTo(new Point(300, 300))
                 .FlyNext(100, 0)

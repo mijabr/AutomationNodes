@@ -2,9 +2,6 @@
 using AutomationNodes.Nodes;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AutomationPlayground.Scenes
 {
@@ -20,9 +17,9 @@ namespace AutomationPlayground.Scenes
         private Image icon;
         private Div profile;
 
-        public void Run(string connectionId)
+        public void Run(ClientContext context)
         {
-            CreateIcon(connectionId);
+            CreateIcon(context);
         }
 
         public void ShowProfile(string connectionId)
@@ -58,15 +55,14 @@ namespace AutomationPlayground.Scenes
             }, TimeSpan.FromMilliseconds(400));
         }
 
-        private void CreateIcon(string connectionId)
+        private void CreateIcon(ClientContext context)
         {
             if (icon != null) return;
 
-            icon = nodeCommander.CreateNode<Image>(connectionId, "assets/profile-2020-04-15_low-transarent-58.png");
+            icon = nodeCommander.CreateNode<Image>(context.ConnectionId, "assets/profile-2020-04-15_low-transarent-58.png");
             nodeCommander.SetProperties(icon, new Dictionary<string, string>
             {
-                ["width"] = "0.01%",
-                ["height"] = "0.01%",
+                ["width"] = context.ScaledImage(0.01),
                 ["left"] = "50%",
                 ["top"] = "50%",
                 ["onclick"] = "show-profile"
@@ -74,8 +70,7 @@ namespace AutomationPlayground.Scenes
             nodeCommander.SetTransition(icon, new Dictionary<string, string>
             {
                 ["transition-timing-function"] = "cubic-bezier(0.9,0,0.95,1)",
-                ["width"] = "4%",
-                ["height"] = "4%",
+                ["width"] = context.ScaledImage(4),
                 ["left"] = "75%",
                 ["top"] = "7%"
             }, TimeSpan.FromSeconds(5));
@@ -92,7 +87,7 @@ namespace AutomationPlayground.Scenes
                 ["left"] = "12%",
                 ["top"] = "6%",
                 ["width"] = "88%",
-                ["height"] = "88%",
+                //["height"] = "88%",
                 ["opacity"] = "0"
             });
             nodeCommander.CreateChildNode<Text>(profile, "View this project on GitHub");

@@ -14,11 +14,11 @@ namespace AutomationPlayground.Worlds
             this.nodeCommander = nodeCommander;
         }
 
-        public void Run(string connectionId)
+        public void Run(ClientContext clientContext)
         {
             for (var n = 0; n < 5; n++)
             {
-                AddShip(connectionId);
+                AddShip(clientContext.ConnectionId);
             }
         }
 
