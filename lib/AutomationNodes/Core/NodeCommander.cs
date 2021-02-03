@@ -100,7 +100,7 @@ namespace AutomationNodes.Core
 
         public void SetProperties(INode node, Dictionary<string, string> properties)
         {
-            foreach(var property in properties)
+            foreach (var property in properties)
             {
                 SetProperty(node, property.Key, property.Value);
             }

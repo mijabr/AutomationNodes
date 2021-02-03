@@ -23,13 +23,6 @@ namespace AutomationNodes.Nodes
         {
             base.OnCreated(parameters);
             nodeCommander.SetProperty(this, "position", "absolute");
-            //body = nodeCommander.CreateChildNode<Image>(this, "assets/flying-bird-body.png");
-            //leftWing = nodeCommander.CreateChildNode<Image>(this, "assets/flying-bird-left-wing.png");
-            //rightWing = nodeCommander.CreateChildNode<Image>(this, "assets/flying-bird-right-wing.png");
-            //nodeCommander.SetProperty(body, "z-index", "1");
-            //SetPropertyForAll("position", "absolute");
-            //SetSize(parameters[0] as string, parameters[1] as string);
-            //Flap(TimeSpan.FromSeconds(1));
         }
     }
 }

@@ -19,15 +19,15 @@ namespace AutomationPlayground.Scenes
         public void Run(ClientContext clientContext)
         {
             var state = new State(clientContext);
-            Task.Run(() => RunAsync(state));
+            Task.Run(async () => await RunAsync(state));
         }
-
-        private TimeSpan starLifetime = TimeSpan.FromSeconds(5);
 
         private class Star
         {
-            public Text Node { get; set; }
+            public INode Node { get; set; }
             public TimeSpan StartedAt { get; set; }
+            public TimeSpan Lifetime { get; set; }
+            public double Size { get; set; }
         }
 
         private class State
@@ -40,15 +40,14 @@ namespace AutomationPlayground.Scenes
             public ClientContext ClientContext { get; set; }
             public Random Random { get; } = new();
             public Stopwatch Stopwatch { get; } = Stopwatch.StartNew();
-            public Queue<Star> Stars { get; } = new();
-            public TimeSpan FlowRate { get; set; } = TimeSpan.FromMilliseconds(30);
+            public SortedList<TimeSpan, Star> Stars { get; } = new(new DuplicateKeyComparer<TimeSpan>());
+            public TimeSpan FlowRate { get; set; } = TimeSpan.FromMilliseconds(15);
             public TimeSpan LastFlowRateChange { get; set; }
-            public TimeSpan FlowChangeTimer { get; set; } = TimeSpan.FromSeconds(1);
+            public TimeSpan FlowChangeTimer { get; set; } = TimeSpan.FromMilliseconds(1800);
             public void ChangeFlow()
             {
-                FlowRate = TimeSpan.FromMilliseconds(Random.Next(10, 300));
+                FlowRate = TimeSpan.FromMilliseconds(Random.Next(6, 200));
                 LastFlowRateChange = Stopwatch.Elapsed;
-                FlowChangeTimer = TimeSpan.FromSeconds(1);
             }
         }
 
@@ -68,10 +67,23 @@ namespace AutomationPlayground.Scenes
         private void AddStar(State state)
         {
             var star = GetStar(state);
+
+            nodeCommander.SetProperties(star.Node, new Dictionary<string, string>
+            {
+                ["transition-timing-function"] = " ",
+                ["transition-duration"] = " ",
+                ["position"] = "absolute",
+                ["left"] = "50%",
+                ["top"] = "50%",
+                ["width"] = state.ClientContext.ScaledImage(star.Size),
+                ["height"] = state.ClientContext.ScaledImage(star.Size)
+            });
+
             var props = new Dictionary<string, string>
             {
                 ["transition-timing-function"] = "cubic-bezier(0.9,0,1,1)",
-                ["color"] = "white"
+                ["width"] = state.ClientContext.ScaledImage(star.Size * 2),
+                ["height"] = state.ClientContext.ScaledImage(star.Size * 2)
             };
             var position = state.Random.NextDouble() * 100.0;
             switch (state.Random.Next(0, 4))
@@ -94,42 +106,55 @@ namespace AutomationPlayground.Scenes
                     break;
             }
 
-            star.StartedAt = state.Stopwatch.Elapsed;
-            nodeCommander.SetTransition(star.Node, props, starLifetime);
+            nodeCommander.SetTransition(star.Node, props, star.Lifetime);
         }
 
         private Star GetStar(State state)
         {
             var star = GetOrCreateStar(state);
-
-            nodeCommander.SetProperties(star.Node, new Dictionary<string, string>
-            {
-                ["transition-timing-function"] = " ",
-                ["transition-duration"] = " ",
-                ["position"] = "absolute",
-                ["color"] = "#808080",
-                ["left"] = "50%",
-                ["top"] = "50%",
-                ["font-size"] = "1em"
-            });
-
-            state.Stars.Enqueue(star);
+            star.StartedAt = state.Stopwatch.Elapsed;
+            star.Lifetime = TimeSpan.FromMilliseconds(state.Random.Next(5000, 50000));
+            state.Stars.Add(star.StartedAt + star.Lifetime, star);
+            star.Size = state.Random.NextDouble() * 0.35;
             return star;
         }
 
         private Star GetOrCreateStar(State state)
         {
-            if (state.Stars.Count > 0 && state.Stopwatch.Elapsed > state.Stars.Peek().StartedAt + starLifetime + TimeSpan.FromSeconds(1))
+            if (state.Stars.Count > 0)
             {
-                return state.Stars.Dequeue();
-            }
-            else
-            {
-                return new Star
+                var s = state.Stars.Values[0];
+                if (state.Stopwatch.Elapsed > s.StartedAt + s.Lifetime)
                 {
-                    Node = nodeCommander.CreateNode<Text>(state.ClientContext.ConnectionId, ".")
-                };
+                    state.Stars.RemoveAt(0);
+                    return s;
+                }
             }
+
+            return new Star
+            {
+                Node = nodeCommander.CreateNode<Image>(state.ClientContext.ConnectionId, RandomStarColor(state))
+            };
+        }
+
+        private string RandomStarColor(State state)
+        {
+            switch (state.Random.Next(0, 100))
+            {
+                case 0: return "assets/star-red.svg";
+                case 1: return "assets/star-green.svg";
+                case 2: return "assets/star-blue.svg";
+                default: return "assets/star.svg";
+            }
+        }
+    }
+
+    public class DuplicateKeyComparer<TKey> : IComparer<TKey> where TKey : IComparable
+    {
+        public int Compare(TKey x, TKey y)
+        {
+            int result = x.CompareTo(y);
+            return result == 0 ? 1 : result;
         }
     }
 }
