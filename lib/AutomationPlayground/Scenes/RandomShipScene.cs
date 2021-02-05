@@ -14,26 +14,26 @@ namespace AutomationPlayground.Worlds
             this.nodeCommander = nodeCommander;
         }
 
-        public void Run(ClientContext clientContext)
+        public void Run(Clients clients)
         {
             for (var n = 0; n < 5; n++)
             {
-                AddShip(clientContext.ConnectionId);
+                AddShip(clients);
             }
         }
 
-        private void AddShip(string connectionId)
+        private void AddShip(Clients clients)
         {
-            nodeCommander.CreateNode<Ship>(connectionId)
-                .FlyTo(NextXCoord(), NextYCoord())
-                .FlyTo(NextXCoord(), NextYCoord())
-                .FlyTo(NextXCoord(), NextYCoord())
-                .FlyTo(NextXCoord(), NextYCoord())
-                .FlyTo(NextXCoord(), NextYCoord())
-                .FlyTo(NextXCoord(), NextYCoord())
-                .FlyTo(NextXCoord(), NextYCoord())
-                .FlyTo(NextXCoord(), NextYCoord())
-                .Start();
+            //nodeCommander.CreateNode<Ship>(clients)
+            //    .FlyTo(NextXCoord(), NextYCoord())
+            //    .FlyTo(NextXCoord(), NextYCoord())
+            //    .FlyTo(NextXCoord(), NextYCoord())
+            //    .FlyTo(NextXCoord(), NextYCoord())
+            //    .FlyTo(NextXCoord(), NextYCoord())
+            //    .FlyTo(NextXCoord(), NextYCoord())
+            //    .FlyTo(NextXCoord(), NextYCoord())
+            //    .FlyTo(NextXCoord(), NextYCoord())
+            //    .Start();
         }
 
         private int NextXCoord() => random.Next(0, 1200);

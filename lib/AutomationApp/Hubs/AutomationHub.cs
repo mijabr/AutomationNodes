@@ -21,14 +21,14 @@ namespace AutomationApp.Hubs
 
         public async Task SendCapabilities(Caps caps)
         {
-            worlds[Context.ConnectionId] = nodeCommander.CreateWorld<MijabrWorld>(Context.ConnectionId, caps);
+            worlds.MijabrWorld.Connect(Context.ConnectionId, caps);
 
             await Task.CompletedTask;
         }
 
         public async Task SendMessage(string message)
         {
-            await worlds[Context.ConnectionId].OnMessage(message);
+            await worlds.MijabrWorld.OnMessage(Context.ConnectionId, message);
         }
 
         public override async Task OnConnectedAsync()
@@ -38,6 +38,8 @@ namespace AutomationApp.Hubs
 
         public override async Task OnDisconnectedAsync(Exception exception)
         {
+            worlds.MijabrWorld.Disconnect(Context.ConnectionId);
+
             await base.OnDisconnectedAsync(exception);
         }
     }

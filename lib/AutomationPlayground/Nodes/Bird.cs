@@ -21,9 +21,9 @@ namespace AutomationPlayground.Nodes
             this.worldTime = worldTime;
         }
 
-        public override void OnCreated(object[] parameters)
+        public override void OnCreated(Clients clients, object[] parameters)
         {
-            base.OnCreated(parameters);
+            base.OnCreated(clients, parameters);
             nodeCommander.SetProperty(this, "position", "absolute");
             body = nodeCommander.CreateChildNode<Image>(this, "assets/flying-bird-body.png");
             leftWing = nodeCommander.CreateChildNode<Image>(this, "assets/flying-bird-left-wing.png");

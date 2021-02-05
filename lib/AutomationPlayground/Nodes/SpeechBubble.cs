@@ -14,9 +14,9 @@ namespace AutomationPlayground.Nodes
 
         private string Text { get; set; }
 
-        public override void OnCreated(object[] parameters)
+        public override void OnCreated(Clients clients, object[] parameters)
         {
-            base.OnCreated(parameters);
+            base.OnCreated(clients, parameters);
 
             if (parameters.Length > 0)
             {

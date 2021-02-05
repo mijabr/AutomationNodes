@@ -12,20 +12,20 @@ namespace AutomationPlayground.Worlds
             this.nodeCommander = nodeCommander;
         }
 
-        public void Run(ClientContext clientContext)
+        public void Run(Clients clients)
         {
-            nodeCommander.CreateNode<Ship>(clientContext.ConnectionId)
-                .SetSize("150px")
-                .FlyTo(new Point(300, 300))
-                .FlyNext(100, 0)
-                .FlyNext(100, 100)
-                .FlyNext(0, 100)
-                .FlyNext(-100, 100)
-                .FlyNext(-100, 0)
-                .FlyNext(-100, -100)
-                .FlyNext(0, -100)
-                .FlyNext(100, -100)
-                .Start();
+            //nodeCommander.CreateNode<Ship>(clients)
+            //    .SetSize("150px")
+            //    .FlyTo(new Point(300, 300))
+            //    .FlyNext(100, 0)
+            //    .FlyNext(100, 100)
+            //    .FlyNext(0, 100)
+            //    .FlyNext(-100, 100)
+            //    .FlyNext(-100, 0)
+            //    .FlyNext(-100, -100)
+            //    .FlyNext(0, -100)
+            //    .FlyNext(100, -100)
+            //    .Start();
         }
     }
 }

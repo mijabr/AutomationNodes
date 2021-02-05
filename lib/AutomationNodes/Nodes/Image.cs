@@ -5,11 +5,11 @@ namespace AutomationNodes.Nodes
 {
     public class Image : Node
     {
-        private readonly INodeCommander nodeCommander;
+        private readonly INodeOrchestrator nodeOrchestrator;
 
-        public Image(INodeCommander nodeCommander)
+        public Image(INodeOrchestrator nodeOrchestrator)
         {
-            this.nodeCommander = nodeCommander;
+            this.nodeOrchestrator = nodeOrchestrator;
         }
 
         public override string Type => "Img";
@@ -25,15 +25,16 @@ namespace AutomationNodes.Nodes
             }
         }
 
-        public override void OnCreated(object[] parameters)
+        public override void OnCreated(Clients clients, object[] parameters)
         {
-            base.OnCreated(parameters);
-            nodeCommander.SetProperty(this, "position", "absolute");
+            base.OnCreated(clients, parameters);
+            var nodes = new ClientNode(this);
+            nodeOrchestrator.SetProperty(clients, nodes, "position", "absolute");
             if (parameters.Length > 1) {
-                nodeCommander.SetProperty(this, "width", (string)parameters[1]);
+                nodeOrchestrator.SetProperty(clients, nodes, "width", (string)parameters[1]);
             }
             if (parameters.Length > 2) {
-                nodeCommander.SetProperty(this, "height", (string)parameters[2]);
+                nodeOrchestrator.SetProperty(clients, nodes, "height", (string)parameters[2]);
             }
         }
 

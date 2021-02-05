@@ -3,28 +3,39 @@ using AutomationNodes.Nodes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace AutomationPlayground.Scenes
 {
     public class StarFieldScene : IScene
     {
-        private readonly INodeCommander nodeCommander;
+        private readonly INodeOrchestrator nodeOrchestrator;
 
-        public StarFieldScene(INodeCommander nodeCommander)
+        public StarFieldScene(INodeOrchestrator nodeOrchestrator)
         {
-            this.nodeCommander = nodeCommander;
+            this.nodeOrchestrator = nodeOrchestrator;
         }
 
-        public void Run(ClientContext clientContext)
+        public void Run(Clients clients)
         {
-            var state = new State(clientContext);
-            Task.Run(async () => await RunAsync(state));
+            var state = new State(clients);
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await RunAsync(state);
+                }
+                catch (Exception x)
+                {
+                    throw;
+                }
+            });
         }
 
         private class Star
         {
-            public INode Node { get; set; }
+            public IClientNode Node { get; set; }
             public TimeSpan StartedAt { get; set; }
             public TimeSpan Lifetime { get; set; }
             public double Size { get; set; }
@@ -32,12 +43,12 @@ namespace AutomationPlayground.Scenes
 
         private class State
         {
-            public State(ClientContext ClientContext)
+            public State(Clients clients)
             {
-                this.ClientContext = ClientContext;
+                Clients = clients;
             }
 
-            public ClientContext ClientContext { get; set; }
+            public Clients Clients { get; }
             public Random Random { get; } = new();
             public Stopwatch Stopwatch { get; } = Stopwatch.StartNew();
             public SortedList<TimeSpan, Star> Stars { get; } = new(new DuplicateKeyComparer<TimeSpan>());
@@ -68,22 +79,22 @@ namespace AutomationPlayground.Scenes
         {
             var star = GetStar(state);
 
-            nodeCommander.SetProperties(star.Node, new Dictionary<string, string>
+            nodeOrchestrator.SetProperties(state.Clients, star.Node, new Dictionary<string, string>
             {
                 ["transition-timing-function"] = " ",
                 ["transition-duration"] = " ",
                 ["position"] = "absolute",
                 ["left"] = "50%",
                 ["top"] = "50%",
-                ["width"] = state.ClientContext.ScaledImage(star.Size),
-                ["height"] = state.ClientContext.ScaledImage(star.Size)
+                ["width"] = $"{star.Size}%", // state.ClientContext.ScaledImage(star.Size),
+                ["height"] = $"{star.Size}%", // state.ClientContext.ScaledImage(star.Size)
             });
 
             var props = new Dictionary<string, string>
             {
                 ["transition-timing-function"] = "cubic-bezier(0.9,0,1,1)",
-                ["width"] = state.ClientContext.ScaledImage(star.Size * 2),
-                ["height"] = state.ClientContext.ScaledImage(star.Size * 2)
+                ["width"] = $"{star.Size * 2}%", // state.ClientContext.ScaledImage(star.Size * 2),
+                ["height"] = $"{star.Size * 2}%", // state.ClientContext.ScaledImage(star.Size * 2)
             };
             var position = state.Random.NextDouble() * 100.0;
             switch (state.Random.Next(0, 4))
@@ -106,7 +117,7 @@ namespace AutomationPlayground.Scenes
                     break;
             }
 
-            nodeCommander.SetTransition(star.Node, props, star.Lifetime);
+            nodeOrchestrator.SetTransition(state.Clients, star.Node, props, star.Lifetime);
         }
 
         private Star GetStar(State state)
@@ -133,7 +144,7 @@ namespace AutomationPlayground.Scenes
 
             return new Star
             {
-                Node = nodeCommander.CreateNode<Image>(state.ClientContext.ConnectionId, RandomStarColor(state))
+                Node = nodeOrchestrator.CreateNode(typeof(Image), state.Clients, RandomStarColor(state))
             };
         }
 

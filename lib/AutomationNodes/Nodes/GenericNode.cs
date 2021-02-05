@@ -4,25 +4,24 @@ namespace AutomationNodes.Nodes
 {
     public class GenericNode : Div, INode
     {
-        private readonly INodeCommander nodeCommander;
+        private readonly INodeOrchestrator nodeOrchestrator;
         private readonly ITemporalEventQueue temporalEventQueue;
         private readonly IWorldTime worldTime;
 
         public GenericNode(
-            INodeCommander nodeCommander,
+            INodeOrchestrator nodeOrchestrator,
             ITemporalEventQueue temporalEventQueue,
             IWorldTime worldTime)
         {
-            this.nodeCommander = nodeCommander;
+            this.nodeOrchestrator = nodeOrchestrator;
             this.temporalEventQueue = temporalEventQueue;
             this.worldTime = worldTime;
         }
 
-
-        public override void OnCreated(object[] parameters)
+        public override void OnCreated(Clients clients, object[] parameters)
         {
-            base.OnCreated(parameters);
-            nodeCommander.SetProperty(this, "position", "absolute");
+            base.OnCreated(clients, parameters);
+            nodeOrchestrator.SetProperty(clients, new ClientNode(this), "position", "absolute");
         }
     }
 }

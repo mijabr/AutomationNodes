@@ -21,9 +21,9 @@ namespace AutomationPlayground.Nodes
 
         private Image shipImage;
 
-        public override void OnCreated(object[] parameters)
+        public override void OnCreated(Clients clients, object[] parameters)
         {
-            base.OnCreated(parameters);
+            base.OnCreated(clients, parameters);
             shipImage = nodeCommander.CreateChildNode<Image>(this, "assets/ship-0001.svg");
             nodeCommander.SetProperty(this, "position", "absolute");
             SetSize("50px");

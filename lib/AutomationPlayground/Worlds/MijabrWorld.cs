@@ -6,56 +6,59 @@ using System.Threading.Tasks;
 
 namespace AutomationPlayground.Worlds
 {
+    public class Worlds
+    {
+        public MijabrWorld MijabrWorld { get; set; }
+    }
+
     public class MijabrWorld : World
     {
-        private readonly INodeCommander nodeCommander;
+        private readonly INodeOrchestrator nodeOrchestrator;
         private readonly MijabrScene mijabr;
         private readonly StarFieldScene starField;
         private readonly MijabrProfile mijabrProfile;
 
         public MijabrWorld(
-            INodeCommander nodeCommander,
+            INodeOrchestrator nodeOrchestrator,
             MijabrScene mijabr,
             StarFieldScene starField,
             MijabrProfile mijabrProfile)
         {
-            this.nodeCommander = nodeCommander;
+            this.nodeOrchestrator = nodeOrchestrator;
             this.mijabr = mijabr;
             this.starField = starField;
             this.mijabrProfile = mijabrProfile;
         }
 
-        public override async Task OnMessage(string message)
+        public void Connect(string connectionId, Caps caps)
+        {
+            nodeOrchestrator.Connect(connectionId, caps);
+            mijabr.Run(Clients.WithIds(connectionId));
+            mijabrProfile.Run(Clients.WithIds(connectionId));
+        }
+
+        public void Disconnect(string connectionId)
+        {
+            nodeOrchestrator.Disconnect(connectionId);
+        }
+
+        public override async Task OnMessage(string connectionId, string message)
         {
             if (message == "show-profile")
             {
-                await Task.Run(() => mijabrProfile.ShowProfile(ConnectionId));
+                await Task.Run(() => mijabrProfile.ShowProfile(Clients.WithIds(connectionId)));
             }
             else if (message == "body")
             {
-                await Task.Run(() => mijabrProfile.HideProfile(ConnectionId));
+                await Task.Run(() => mijabrProfile.HideProfile(Clients.WithIds(connectionId)));
             }
         }
 
-        private ClientContext clientContext = new();
-
-        public override void OnCreated(object[] parameters)
+        public override void OnCreated(Clients clients, object[] parameters)
         {
-            base.OnCreated(parameters);
+            base.OnCreated(clients, parameters);
 
-            clientContext.ConnectionId = ConnectionId;
-
-            if (parameters?.Length > 0)
-            {
-                clientContext.Caps = parameters[0] as Caps;
-                if (clientContext.Caps.isMobile)
-                {
-                    clientContext.ImageScaling = 2.0;
-                    clientContext.FontScaling = 1.3;
-                }
-            }
-
-            nodeCommander.SetProperties(this, new Dictionary<string, string>
+            nodeOrchestrator.SetProperties(clients, new ClientNode(this), new Dictionary<string, string>
             {
                 ["position"] = "relative",
                 ["width"] = "100%",
@@ -64,24 +67,10 @@ namespace AutomationPlayground.Worlds
                 ["background-color"] = "black",
                 ["overflow"] = "hidden",
                 ["font-family"] = "verdana",
-                ["font-size"] = clientContext.ScaledFont(1)
+                ["font-size"] = "1em" // ScaledFont
             });
 
-            Start(starField);
-            Start(mijabr, TimeSpan.FromSeconds(2));
-            Start(mijabrProfile, TimeSpan.FromSeconds(4));
-        }
-
-        private void Start(IScene scene, TimeSpan? startTime = null)
-        {
-            Task.Run(async () => {
-                if (startTime.HasValue)
-                {
-                    await Task.Delay(startTime.Value);
-                }
-
-                scene.Run(clientContext);
-            });
+            starField.Run(Clients.All);
         }
     }
 }

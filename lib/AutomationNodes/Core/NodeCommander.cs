@@ -1,5 +1,4 @@
-﻿using AutomationNodes.Nodes;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace AutomationNodes.Core
@@ -60,25 +59,25 @@ namespace AutomationNodes.Core
                 { "id", world.Id }
             });
 
-            world.OnCreated(parameters);
+            world.OnCreated(Clients.All, parameters);
 
             return world;
         }
 
         private object DoCreateNode(Type type, string connectionId, INode parent, params object[] parameters)
         {
-            var node = ConstructNode(type, connectionId, parent, parameters);
+            var node = ConstructNode(type, connectionId, parent);
             node.OnCreate(parameters);
             hubManager.Send(node.ConnectionId, node.CreationMessage());
-            node.OnCreated(parameters);
+            node.OnCreated(Clients.All, parameters);
 
             return node;
         }
 
-        private INode ConstructNode(Type type, string connectionId, INode parent, params object[] parameters)
+        private INode ConstructNode(Type type, string connectionId, INode parent)
         {
             var o = serviceProvider.GetService(type);
-            if (o == null) throw new Exception($"Could not create {type.Name}. Maybe it's not registered?");
+            if (o == null) throw new Exception($"Could not resolve {type.Name}. Maybe it's not registered?");
             if (!(o is INode node)) throw new Exception($"{type.Name} must be type of INode");
 
             node.Parent = parent;

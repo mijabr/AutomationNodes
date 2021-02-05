@@ -7,7 +7,7 @@ namespace AutomationNodes.Core
 {
     public interface ISceneActioner
     {
-        void Run(string script, string connectionId);
+        void Run(Clients clients, string script);
     }
 
     public class SceneActioner : ISceneActioner
@@ -15,23 +15,23 @@ namespace AutomationNodes.Core
         private readonly IWorldTime worldTime;
         private readonly ITemporalEventQueue temporalEventQueue;
         private readonly ISceneCompiler sceneCompiler;
-        private readonly INodeCommander nodeCommander;
+        private readonly INodeOrchestrator nodeOrchestrator;
 
         public SceneActioner(
             IWorldTime worldTime,
             ITemporalEventQueue temporalEventQueue,
             ISceneCompiler sceneCompiler,
-            INodeCommander nodeCommander)
+            INodeOrchestrator nodeOrchestrator)
         {
             this.worldTime = worldTime;
             this.temporalEventQueue = temporalEventQueue;
             this.sceneCompiler = sceneCompiler;
-            this.nodeCommander = nodeCommander;
+            this.nodeOrchestrator = nodeOrchestrator;
         }
 
-        public void Run(string script, string connectionId)
+        public void Run(Clients clients, string script)
         {
-            Run(sceneCompiler.Compile(script), connectionId);
+            Run(clients, sceneCompiler.Compile(script));
         }
 
         private class GenericNodeClass
@@ -43,10 +43,15 @@ namespace AutomationNodes.Core
 
         private class RunState
         {
-            public string ConnectionId { get; set; }
-            private Dictionary<string, INode> NodeVariables { get; } = new();
-            public void AddNodeVariable(string nodeName, INode node) => NodeVariables[VariableContext(nodeName)] = node;
-            public INode GetNodeVariable(string nodeName) => NodeVariables[VariableContext(nodeName)];
+            public RunState(Clients clients)
+            {
+                Clients = clients;
+            }
+
+            public Clients Clients { get; }
+            private Dictionary<string, IClientNode> NodeVariables { get; } = new();
+            public void AddNodeVariable(string nodeName, IClientNode node) => NodeVariables[VariableContext(nodeName)] = node;
+            public IClientNode GetNodeVariable(string nodeName) => NodeVariables[VariableContext(nodeName)];
             public Dictionary<string, GenericNodeClass> NodeClasses { get; } = new();
             public CompiledStatement CurrentStatement { get; set; }
             public string CurrentClassVariableName { get; set; }
@@ -55,9 +60,9 @@ namespace AutomationNodes.Core
                 : variableName;
         }
 
-        private void Run(IEnumerable<CompiledStatement> compiledStatements, string connectionId)
+        private void Run(Clients clients, IEnumerable<CompiledStatement> compiledStatements)
         {
-            var runState = new RunState { ConnectionId = connectionId };
+            var runState = new RunState(clients);
             foreach(var statement in compiledStatements) {
                 runState.CurrentStatement = statement;
                 RunStatement(runState);
@@ -90,13 +95,13 @@ namespace AutomationNodes.Core
             return () => {
                 var parent = sceneCreateStatement.ParentNodeName != null ? runState.GetNodeVariable(sceneCreateStatement.ParentNodeName) : null;
                 if (parent != null) {
-                    if (!(nodeCommander.CreateChildNode(sceneCreateStatement.Type, parent, sceneCreateStatement.Parameters) is INode node)) {
+                    if (!(nodeOrchestrator.CreateChildNode(sceneCreateStatement.Type, runState.Clients, parent, sceneCreateStatement.Parameters) is IClientNode node)) {
                         throw new Exception($"Failed to create child node '{sceneCreateStatement.Type}'");
                     }
 
                     runState.AddNodeVariable(sceneCreateStatement.NodeName, node);
                 } else {
-                    if (!(nodeCommander.CreateNode(sceneCreateStatement.Type, runState.ConnectionId, sceneCreateStatement.Parameters) is INode node)) {
+                    if (!(nodeOrchestrator.CreateNode(sceneCreateStatement.Type, runState.Clients, sceneCreateStatement.Parameters) is IClientNode node)) {
                         throw new Exception($"Failed to create node '{sceneCreateStatement.Type}'");
                     }
 
@@ -109,7 +114,7 @@ namespace AutomationNodes.Core
         {
             return () => {
                 var node = runState.GetNodeVariable(setStatement.NodeName);
-                nodeCommander.SetProperty(node, setStatement.PropertyName, setStatement.PropertyValue);
+                nodeOrchestrator.SetProperty(runState.Clients, node, setStatement.PropertyName, setStatement.PropertyValue);
             };
         }
 
@@ -117,14 +122,14 @@ namespace AutomationNodes.Core
         {
             return () => {
                 var node = runState.GetNodeVariable(transitionStatement.NodeName);
-                nodeCommander.SetTransition(node, transitionStatement.TransitionProperties, transitionStatement.Duration);
+                nodeOrchestrator.SetTransition(runState.Clients, node, transitionStatement.TransitionProperties, transitionStatement.Duration);
             };
         }
 
         private Action GetKeyframeAction(RunState runState, SceneKeyframeStatement keyframeStatement)
         {
             return () => {
-                nodeCommander.AddKeyframe(runState.ConnectionId, keyframeStatement.KeyframeProperties, keyframeStatement.KeyframeName, keyframeStatement.KeyframePercent);
+                nodeOrchestrator.AddKeyframe(keyframeStatement.KeyframeProperties, keyframeStatement.KeyframeName, keyframeStatement.KeyframePercent);
             };
         }
 
