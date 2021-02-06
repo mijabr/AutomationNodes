@@ -9,17 +9,17 @@ namespace AutomationNodes.Core
     {
         public Guid Id { get; }
         void OnCreated(Clients clients, object[] parameters);
-        void OnConnect(string connectionId, Caps caps);
-        void OnDisconnect(string connectionId);
+        Task OnConnect(string connectionId);
+        Task OnDisconnect(string connectionId);
         Task OnMessage(string connectionId, string message);
         CancellationToken CancellationToken { get; set; }
     }
 
     public class World : Div, IWorld
     {
-        public virtual void OnConnect(string connectionId, Caps caps) { }
+        public virtual Task OnConnect(string connectionId) => Task.CompletedTask;
 
-        public virtual void OnDisconnect(string connectionId) { }
+        public virtual Task OnDisconnect(string connectionId) => Task.CompletedTask;
 
         public virtual Task OnMessage(string connectionId, string message) => Task.CompletedTask;
         public CancellationToken CancellationToken { get ; set; }

@@ -1,5 +1,6 @@
 ﻿using AutomationNodes.Core;
 using AutomationPlayground.Scenes;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -24,10 +25,21 @@ namespace AutomationPlayground.Worlds
             this.mijabrProfile = mijabrProfile;
         }
 
-        public override void OnConnect(string connectionId, Caps caps)
+        public override async Task OnConnect(string connectionId)
         {
-            mijabr.Run(Clients.WithIds(connectionId));
-            mijabrProfile.Run(Clients.WithIds(connectionId));
+            await Task.Run(() => {
+                var clients = Clients.WithIds(connectionId);
+                Start(mijabr, clients, TimeSpan.FromSeconds(2));
+                Start(mijabrProfile, clients, TimeSpan.FromSeconds(4));
+            });
+        }
+
+        private void Start(IScene scene, Clients clients, TimeSpan afterDelay)
+        {
+            Task.Run(async () => {
+                await Task.Delay(afterDelay);
+                scene.Run(clients);
+            });
         }
 
         public override async Task OnMessage(string connectionId, string message)
@@ -55,7 +67,7 @@ namespace AutomationPlayground.Worlds
                 ["background-color"] = "black",
                 ["overflow"] = "hidden",
                 ["font-family"] = "verdana",
-                ["font-size"] = "1em" // ScaledFont
+                ["font-size"] = "1em"
             });
 
             starField.Run(Clients.All);

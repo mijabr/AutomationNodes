@@ -3,7 +3,6 @@ using AutomationNodes.Nodes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace AutomationPlayground.Scenes
@@ -86,15 +85,15 @@ namespace AutomationPlayground.Scenes
                 ["position"] = "absolute",
                 ["left"] = "50%",
                 ["top"] = "50%",
-                ["width"] = $"{star.Size}%", // state.ClientContext.ScaledImage(star.Size),
-                ["height"] = $"{star.Size}%", // state.ClientContext.ScaledImage(star.Size)
+                ["width"] = $"{star.Size}%",
+                ["height"] = $"{star.Size}%",
             });
 
             var props = new Dictionary<string, string>
             {
                 ["transition-timing-function"] = "cubic-bezier(0.9,0,1,1)",
-                ["width"] = $"{star.Size * 2}%", // state.ClientContext.ScaledImage(star.Size * 2),
-                ["height"] = $"{star.Size * 2}%", // state.ClientContext.ScaledImage(star.Size * 2)
+                ["width"] = $"{star.Size * 2}%",
+                ["height"] = $"{star.Size * 2}%",
             };
             var position = state.Random.NextDouble() * 100.0;
             switch (state.Random.Next(0, 4))

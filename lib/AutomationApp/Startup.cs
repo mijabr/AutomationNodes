@@ -23,6 +23,8 @@ namespace AutomationApp
             services.AddSingleton(typeof(IHubMessenger), typeof(HubMessenger));
             services.AddSingleton(typeof(IHubUpstream), typeof(HubUpstream));
             services.AddSingleton(typeof(IHubDownstream), typeof(HubDownstream));
+            services.AddSingleton(typeof(IConnectedClients), typeof(ConnectedClients));
+            services.AddSingleton(typeof(IPropertyScaler), typeof(PropertyScaler));
             services.AddSingleton(typeof(ITemporalEventQueue), typeof(TemporalEventQueue));
             services.AddSingleton(typeof(IWorldTime), typeof(WorldTime));
             services.AddSingleton(typeof(IScriptTokenizer), typeof(ScriptTokenizer));

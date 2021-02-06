@@ -6,18 +6,22 @@ namespace AutomationNodes.Core
     public interface IHubUpstream
     {
         void RegisterWorld<T>(CancellationToken token) where T : IWorld;
-        void OnConnect(string connectionId, Caps caps);
-        void OnDisconnect(string connectionId);
+        Task OnConnect(string connectionId, Caps caps);
+        Task OnDisconnect(string connectionId);
         Task OnMessage(string connectionId, string message);
     }
 
     public class HubUpstream : IHubUpstream
     {
         private readonly INodeOrchestrator nodeOrchestrator;
+        private readonly IConnectedClients connectedClients;
 
-        public HubUpstream(INodeOrchestrator nodeOrchestrator)
+        public HubUpstream(
+            INodeOrchestrator nodeOrchestrator,
+            IConnectedClients connectedClients)
         {
             this.nodeOrchestrator = nodeOrchestrator;
+            this.connectedClients = connectedClients;
         }
 
         public IWorld world { get; private set; }
@@ -27,21 +31,22 @@ namespace AutomationNodes.Core
             world = nodeOrchestrator.CreateWorld<T>(token);
         }
 
-        public void OnConnect(string connectionId, Caps caps)
+        public async Task OnConnect(string connectionId, Caps caps)
         {
-            nodeOrchestrator.Connect(connectionId, caps);
-            world?.OnConnect(connectionId, caps);
+            connectedClients.Connect(connectionId, caps);
+            nodeOrchestrator.OnConnect(connectionId);
+            await world?.OnConnect(connectionId);
         }
 
-        public void OnDisconnect(string connectionId)
+        public async Task OnDisconnect(string connectionId)
         {
-            nodeOrchestrator.Disconnect(connectionId);
-            world?.OnDisconnect(connectionId);
+            connectedClients.Disconnect(connectionId);
+            await world?.OnDisconnect(connectionId);
         }
 
         public async Task OnMessage(string connectionId, string message)
         {
-            await world.OnMessage(connectionId, message);
+            await world?.OnMessage(connectionId, message);
         }
     }
 }

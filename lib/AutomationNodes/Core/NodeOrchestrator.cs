@@ -5,18 +5,6 @@ using System.Threading;
 
 namespace AutomationNodes.Core
 {
-    // TODO: this will be applied just before sending message
-    public class ClientContext
-    {
-        public string ConnectionId { get; set; }
-        public Caps Caps { get; set; }
-        public double ImageScaling { get; set; } = 1.0;
-        public double FontScaling { get; set; } = 1.0;
-        public string ScaledImage(double size) => $"{size * ImageScaling}%";
-        public string ScaledFont(double size) => $"{size * FontScaling}em";
-        public Dictionary<Guid, INode> Nodes { get; } = new();
-    }
-
     public class Clients
     {
         private Clients()
@@ -31,8 +19,7 @@ namespace AutomationNodes.Core
 
     public interface INodeOrchestrator
     {
-        void Connect(string connectionId, Caps caps);
-        void Disconnect(string connectionId);
+        void OnConnect(string connectionId);
         T CreateWorld<T>(CancellationToken token, params object[] parameters) where T : IWorld;
         IClientNode CreateNamedNode(Type type, Clients clients, string name, params object[] parameters);
         IClientNode GetNamedNode(Clients clients, string name);
@@ -49,45 +36,28 @@ namespace AutomationNodes.Core
         private readonly IServiceProvider serviceProvider;
         private readonly IWorldTime worldTime;
         private readonly IHubMessenger hubMessenger;
+        private readonly IConnectedClients connectedClients;
 
         public NodeOrchestrator(
             IServiceProvider serviceProvider,
             IWorldTime worldTime,
-            IHubMessenger hubMessenger)
+            IHubMessenger hubMessenger,
+            IConnectedClients connectedClients)
         {
             this.serviceProvider = serviceProvider;
             this.worldTime = worldTime;
             this.hubMessenger = hubMessenger;
+            this.connectedClients = connectedClients;
         }
 
-        private Dictionary<string, ClientContext> connectedClients = new();
         private Dictionary<Guid, INode> allNodes = new();
         private List<KeyFrame> allKeyframes = new();
         private Dictionary<string, Dictionary<string, Guid>> nameConnectionNodeIdMap = new();
         private IWorld world;
 
-        public void Connect(string connectionId, Caps caps)
+        public void OnConnect(string connectionId)
         {
-            var client = new ClientContext
-            {
-                ConnectionId = connectionId,
-                Caps = caps
-            };
-
-            if (client.Caps.isMobile)
-            {
-                client.ImageScaling = 2.0;
-                client.FontScaling = 1.3;
-            }
-
-            connectedClients.Add(connectionId, client);
-
             SendState(connectionId);
-        }
-
-        public void Disconnect(string connectionId)
-        {
-            connectedClients.Remove(connectionId);
         }
 
         private void SendState(string connectionId)
@@ -147,7 +117,7 @@ namespace AutomationNodes.Core
             world = ConstructNode(typeof(T), null) as IWorld;
             world.CancellationToken = token;
 
-            foreach(var client in connectedClients)
+            foreach(var client in connectedClients.ClientContexts)
             {
                 hubMessenger.SendWorldMessage(client.Value.ConnectionId, world.Id);
             }
@@ -184,7 +154,7 @@ namespace AutomationNodes.Core
                 {
                     foreach(var connectionId in clients.ConnectionIds)
                     {
-                        CatchUpNodes(connectedClients[connectionId].Nodes);
+                        CatchUpNodes(connectedClients.ClientContexts[connectionId].Nodes);
                     }
 
                     var clientNodes = clients.ConnectionIds
@@ -192,7 +162,7 @@ namespace AutomationNodes.Core
                         {
                             if (connectionNodeIdMap.TryGetValue(connectionId, out var nodeId))
                             {
-                                if (connectedClients.TryGetValue(connectionId, out var client))
+                                if (connectedClients.ClientContexts.TryGetValue(connectionId, out var client))
                                 {
                                     if (client.Nodes.TryGetValue(nodeId, out var node))
                                     {
@@ -235,7 +205,7 @@ namespace AutomationNodes.Core
                 }
                 allNodes.Add(node.Id, node);
                 node.OnCreate(parameters);
-                foreach (var client in connectedClients)
+                foreach (var client in connectedClients.ClientContexts)
                 {
                     hubMessenger.SendCreationMessage(client.Value.ConnectionId, node.CreationMessage());
                 }
@@ -254,7 +224,7 @@ namespace AutomationNodes.Core
                     {
                         connectionNodeIdMap[connectionId] = node.Id;
                     }
-                    connectedClients[connectionId].Nodes.Add(node.Id, node);
+                    connectedClients.ClientContexts[connectionId].Nodes.Add(node.Id, node);
                     node.OnCreate(parameters);
                     hubMessenger.SendCreationMessage(connectionId, node.CreationMessage());
                     node.OnCreated(Clients.WithIds(connectionId), parameters);
@@ -298,7 +268,7 @@ namespace AutomationNodes.Core
             {
                 var nodeId = list[0].Id;
                 allNodes[nodeId].Properties[propertyName] = propertyValue;
-                foreach (var client in connectedClients)
+                foreach (var client in connectedClients.ClientContexts)
                 {
                     hubMessenger.SendSetPropertyMessage(client.Value.ConnectionId, nodeId, propertyName, propertyValue);
                 }
@@ -309,7 +279,7 @@ namespace AutomationNodes.Core
                 foreach (string connectionId in clients.ConnectionIds)
                 {
                     var nodeId = list[nodeCount++].Id;
-                    connectedClients[connectionId].Nodes[nodeId].Properties[propertyName] = propertyValue;
+                    connectedClients.ClientContexts[connectionId].Nodes[nodeId].Properties[propertyName] = propertyValue;
                     hubMessenger.SendSetPropertyMessage(connectionId, nodeId, propertyName, propertyValue);
                 }
             }
@@ -332,7 +302,7 @@ namespace AutomationNodes.Core
                 allNodes[nodeId].TransitionProperties = transitionProperties;
                 allNodes[nodeId].TransitionEndTime = worldTime.Time.Elapsed + duration;
                 allNodes[nodeId].DestroyAfterTransition = destroyAfter;
-                foreach (var client in connectedClients)
+                foreach (var client in connectedClients.ClientContexts)
                 {
                     hubMessenger.SendTransitionMessage(client.Value.ConnectionId, nodeId, transitionProperties, duration, destroyAfter);
                 }
@@ -343,9 +313,9 @@ namespace AutomationNodes.Core
                 foreach (string connectionId in clients.ConnectionIds)
                 {
                     var nodeId = list[nodeCount++].Id;
-                    connectedClients[connectionId].Nodes[nodeId].TransitionProperties = transitionProperties;
-                    connectedClients[connectionId].Nodes[nodeId].TransitionEndTime = worldTime.Time.Elapsed + duration;
-                    connectedClients[connectionId].Nodes[nodeId].DestroyAfterTransition = destroyAfter;
+                    connectedClients.ClientContexts[connectionId].Nodes[nodeId].TransitionProperties = transitionProperties;
+                    connectedClients.ClientContexts[connectionId].Nodes[nodeId].TransitionEndTime = worldTime.Time.Elapsed + duration;
+                    connectedClients.ClientContexts[connectionId].Nodes[nodeId].DestroyAfterTransition = destroyAfter;
                     hubMessenger.SendTransitionMessage(connectionId, nodeId, transitionProperties, duration, destroyAfter);
                 }
             }
@@ -359,7 +329,7 @@ namespace AutomationNodes.Core
                 Properties = keyframeProperties,
                 Percent = keyframePercent
             });
-            foreach (var client in connectedClients)
+            foreach (var client in connectedClients.ClientContexts)
             {
                 hubMessenger.SendAddKeyframeMessage(client.Value.ConnectionId, keyframeProperties, keyframeName, keyframePercent);
             }

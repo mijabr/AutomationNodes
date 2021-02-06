@@ -27,7 +27,7 @@ namespace AutomationPlayground.Scenes
             var icon = nodeOrchestrator.CreateNamedNode(typeof(Image), clients, profileIcon, "assets/profile-2020-04-15_low-transarent-58.png");
             nodeOrchestrator.SetProperties(clients, icon, new Dictionary<string, string>
             {
-                ["width"] = "0.01%", // context.ScaledImage(0.01),
+                ["width"] = "0.01%",
                 ["left"] = "50%",
                 ["top"] = "50%",
                 ["onclick"] = "show-profile"
@@ -35,7 +35,7 @@ namespace AutomationPlayground.Scenes
             nodeOrchestrator.SetTransition(clients, icon, new Dictionary<string, string>
             {
                 ["transition-timing-function"] = "cubic-bezier(0.9,0,0.95,1)",
-                ["width"] = "4%", // context.ScaledImage(4),
+                ["width"] = "4%",
                 ["left"] = "75%",
                 ["top"] = "7%"
             }, TimeSpan.FromSeconds(5));

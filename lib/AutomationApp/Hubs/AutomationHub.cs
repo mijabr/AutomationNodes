@@ -17,7 +17,7 @@ namespace AutomationApp.Hubs
 
         public async Task SendCapabilities(Caps caps)
         {
-            hubUpstream.OnConnect(Context.ConnectionId, caps);
+            await hubUpstream.OnConnect(Context.ConnectionId, caps);
 
             await Task.CompletedTask;
         }
@@ -34,7 +34,7 @@ namespace AutomationApp.Hubs
 
         public override async Task OnDisconnectedAsync(Exception exception)
         {
-            hubUpstream.OnDisconnect(Context.ConnectionId);
+            await hubUpstream.OnDisconnect(Context.ConnectionId);
 
             await base.OnDisconnectedAsync(exception);
         }
