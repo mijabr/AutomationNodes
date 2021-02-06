@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace AutomationNodes.Core
 {
@@ -32,7 +33,7 @@ namespace AutomationNodes.Core
     {
         void Connect(string connectionId, Caps caps);
         void Disconnect(string connectionId);
-        T CreateWorld<T>(params object[] parameters) where T : INode;
+        T CreateWorld<T>(CancellationToken token, params object[] parameters) where T : IWorld;
         IClientNode CreateNamedNode(Type type, Clients clients, string name, params object[] parameters);
         IClientNode GetNamedNode(Clients clients, string name);
         IClientNode CreateNode(Type type, Clients clients, params object[] parameters);
@@ -63,7 +64,7 @@ namespace AutomationNodes.Core
         private Dictionary<Guid, INode> allNodes = new();
         private List<KeyFrame> allKeyframes = new();
         private Dictionary<string, Dictionary<string, Guid>> nameConnectionNodeIdMap = new();
-        private INode world;
+        private IWorld world;
 
         public void Connect(string connectionId, Caps caps)
         {
@@ -141,16 +142,17 @@ namespace AutomationNodes.Core
             }
         }
 
-        public T CreateWorld<T>(params object[] parameters) where T : INode
+        public T CreateWorld<T>(CancellationToken token, params object[] parameters) where T : IWorld
         {
-            world = ConstructNode(typeof(T), null);
+            world = ConstructNode(typeof(T), null) as IWorld;
+            world.CancellationToken = token;
 
             foreach(var client in connectedClients)
             {
                 hubMessenger.SendWorldMessage(client.Value.ConnectionId, world.Id);
             }
 
-            allNodes[world.Id] = world;
+            allNodes[world.Id] = world as INode;
             world.OnCreated(Clients.All, parameters);
 
             return (T)world;

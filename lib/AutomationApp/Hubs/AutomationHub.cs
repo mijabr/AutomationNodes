@@ -1,34 +1,30 @@
 ﻿using AutomationNodes.Core;
-using AutomationPlayground.Worlds;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace AutomationApp.Hubs
 {
     public class AutomationHub : Hub
     {
-        private readonly INodeCommander nodeCommander;
-        private readonly Worlds worlds;
+        private readonly IHubUpstream hubUpstream;
 
-        public AutomationHub(INodeCommander nodeCommander, Worlds worlds)
+        public AutomationHub(IHubUpstream hubUpstream)
         {
-            this.nodeCommander = nodeCommander;
-            this.worlds = worlds;
+            this.hubUpstream = hubUpstream;
         }
 
         public async Task SendCapabilities(Caps caps)
         {
-            worlds.MijabrWorld.Connect(Context.ConnectionId, caps);
+            hubUpstream.OnConnect(Context.ConnectionId, caps);
 
             await Task.CompletedTask;
         }
 
         public async Task SendMessage(string message)
         {
-            await worlds.MijabrWorld.OnMessage(Context.ConnectionId, message);
+            await hubUpstream.OnMessage(Context.ConnectionId, message);
         }
 
         public override async Task OnConnectedAsync()
@@ -38,7 +34,7 @@ namespace AutomationApp.Hubs
 
         public override async Task OnDisconnectedAsync(Exception exception)
         {
-            worlds.MijabrWorld.Disconnect(Context.ConnectionId);
+            hubUpstream.OnDisconnect(Context.ConnectionId);
 
             await base.OnDisconnectedAsync(exception);
         }
@@ -57,61 +53,5 @@ namespace AutomationApp.Hubs
         {
             await hubContext.Clients.Client(connectionId).SendAsync("AutomationMessage", messages);
         }
-    }
-
-    public class HubManager : IHubManager
-    {
-        private readonly IAutomationHubContext automationHubContext;
-
-        public HubManager(IAutomationHubContext automationHubContext)
-        {
-            this.automationHubContext = automationHubContext;
-        }
-
-        public void Send(string connectionId, Dictionary<string, object> message)
-        {
-            lock (lockObj)
-            {
-                if (clientsMessages.TryGetValue(connectionId, out var clientMessages))
-                {
-                    clientMessages.Add(message);
-                }
-                else
-                {
-                    var newClientMessages = new List<Dictionary<string, object>>();
-                    clientsMessages.Add(connectionId, newClientMessages);
-                    newClientMessages.Add(message);
-                }
-            }
-        }
-
-        public void Start(CancellationToken token)
-        {
-            Task.Run(() => Run(token));
-        }
-
-        private async Task Run(CancellationToken token)
-        {
-            while (!token.IsCancellationRequested)
-            {
-                Dictionary<string, List<Dictionary<string, object>>> clientsMessagesToSend;
-                lock (lockObj)
-                {
-                    clientsMessagesToSend = clientsMessages;
-                    clientsMessages = new Dictionary<string, List<Dictionary<string, object>>>();
-                }
-
-                foreach(var clientMessages in clientsMessagesToSend)
-                {
-                    await automationHubContext.Send(clientMessages.Key, clientMessages.Value);
-                }
-
-                await Task.Delay(10);
-            }
-        }
-
-        private Dictionary<string, List<Dictionary<string, object>>> clientsMessages = new Dictionary<string, List<Dictionary<string, object>>>();
-
-        private object lockObj = new object();
     }
 }

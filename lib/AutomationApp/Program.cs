@@ -1,4 +1,3 @@
-using AutomationApp.Hubs;
 using AutomationNodes.Core;
 using AutomationPlayground.Worlds;
 using Microsoft.AspNetCore.Hosting;
@@ -15,7 +14,6 @@ namespace AutomationApp
 
             StartTemporalEventQueue(host);
             StartHubManager(host);
-            StartWorld(host);
 
             host.Run();
         }
@@ -38,15 +36,11 @@ namespace AutomationApp
         private static void StartHubManager(IHost host)
         {
             var token = host.Services.GetService(typeof(ApplicationRunningToken)) as ApplicationRunningToken;
-            var hubManager = host.Services.GetService(typeof(IHubManager)) as HubManager;
-            Task.Run(() => hubManager.Start(token.CancellationToken.Token));
-        }
+            var hubDownstream = host.Services.GetService(typeof(IHubDownstream)) as IHubDownstream;
+            Task.Run(() => hubDownstream.Start(token.CancellationToken.Token));
 
-        private static void StartWorld(IHost host)
-        {
-            var worlds = host.Services.GetService(typeof(Worlds)) as Worlds;
-            var nodeOrchestrator = host.Services.GetService(typeof(INodeOrchestrator)) as INodeOrchestrator;
-            worlds.MijabrWorld = nodeOrchestrator.CreateWorld<MijabrWorld>();
+            var hubUpstream = host.Services.GetService(typeof(IHubUpstream)) as IHubUpstream;
+            hubUpstream.RegisterWorld<MijabrWorld>(token.CancellationToken.Token);
         }
     }
 }

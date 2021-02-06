@@ -1,16 +1,10 @@
 ﻿using AutomationNodes.Core;
 using AutomationPlayground.Scenes;
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace AutomationPlayground.Worlds
 {
-    public class Worlds
-    {
-        public MijabrWorld MijabrWorld { get; set; }
-    }
-
     public class MijabrWorld : World
     {
         private readonly INodeOrchestrator nodeOrchestrator;
@@ -30,16 +24,10 @@ namespace AutomationPlayground.Worlds
             this.mijabrProfile = mijabrProfile;
         }
 
-        public void Connect(string connectionId, Caps caps)
+        public override void OnConnect(string connectionId, Caps caps)
         {
-            nodeOrchestrator.Connect(connectionId, caps);
             mijabr.Run(Clients.WithIds(connectionId));
             mijabrProfile.Run(Clients.WithIds(connectionId));
-        }
-
-        public void Disconnect(string connectionId)
-        {
-            nodeOrchestrator.Disconnect(connectionId);
         }
 
         public override async Task OnMessage(string connectionId, string message)

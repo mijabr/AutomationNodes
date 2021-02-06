@@ -1,7 +1,6 @@
 using AutomationApp.Hubs;
 using AutomationNodes.Core;
 using AutomationNodes.Core.Compile;
-using AutomationPlayground.Worlds;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +21,8 @@ namespace AutomationApp
             services.AddSingleton<ApplicationRunningToken>();
             services.AddSingleton(typeof(IAutomationHubContext), typeof(AutomationHubContext));
             services.AddSingleton(typeof(IHubMessenger), typeof(HubMessenger));
-            services.AddSingleton(typeof(IHubManager), typeof(HubManager));
+            services.AddSingleton(typeof(IHubUpstream), typeof(HubUpstream));
+            services.AddSingleton(typeof(IHubDownstream), typeof(HubDownstream));
             services.AddSingleton(typeof(ITemporalEventQueue), typeof(TemporalEventQueue));
             services.AddSingleton(typeof(IWorldTime), typeof(WorldTime));
             services.AddSingleton(typeof(IScriptTokenizer), typeof(ScriptTokenizer));
@@ -38,7 +38,6 @@ namespace AutomationApp
             services.AddSingleton(typeof(IKeyframeModule), typeof(KeyframeModule));
             services.AddSingleton(typeof(IFunctionModule), typeof(FunctionModule));
             services.AddSingleton(typeof(IClassModule), typeof(ClassModule));
-            services.AddSingleton(typeof(Worlds));
 
             services.AddAutomationArtifactsFromAssembly(Assembly.Load("AutomationNodes"));
             services.AddAutomationArtifactsFromAssembly(Assembly.Load("AutomationPlayground"));

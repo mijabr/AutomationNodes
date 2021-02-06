@@ -3,7 +3,7 @@ using AutomationNodes.Nodes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AutomationPlayground.Scenes
@@ -52,12 +52,12 @@ namespace AutomationPlayground.Scenes
             public Random Random { get; } = new();
             public Stopwatch Stopwatch { get; } = Stopwatch.StartNew();
             public SortedList<TimeSpan, Star> Stars { get; } = new(new DuplicateKeyComparer<TimeSpan>());
-            public TimeSpan FlowRate { get; set; } = TimeSpan.FromMilliseconds(15);
+            public TimeSpan FlowRate { get; set; } = TimeSpan.FromMilliseconds(30);
             public TimeSpan LastFlowRateChange { get; set; }
             public TimeSpan FlowChangeTimer { get; set; } = TimeSpan.FromMilliseconds(1800);
             public void ChangeFlow()
             {
-                FlowRate = TimeSpan.FromMilliseconds(Random.Next(6, 200));
+                FlowRate = TimeSpan.FromMilliseconds(Random.Next(30, 200));
                 LastFlowRateChange = Stopwatch.Elapsed;
             }
         }
@@ -124,7 +124,7 @@ namespace AutomationPlayground.Scenes
         {
             var star = GetOrCreateStar(state);
             star.StartedAt = state.Stopwatch.Elapsed;
-            star.Lifetime = TimeSpan.FromMilliseconds(state.Random.Next(5000, 50000));
+            star.Lifetime = TimeSpan.FromMilliseconds(state.Random.Next(6000, 40000));
             state.Stars.Add(star.StartedAt + star.Lifetime, star);
             star.Size = state.Random.NextDouble() * 0.35;
             return star;

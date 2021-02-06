@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace AutomationNodes.Core
+﻿namespace AutomationNodes.Core
 {
     public interface IScene
     {

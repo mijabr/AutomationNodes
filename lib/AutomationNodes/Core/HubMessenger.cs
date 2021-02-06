@@ -14,16 +14,16 @@ namespace AutomationNodes.Core
 
     public class HubMessenger : IHubMessenger
     {
-        private readonly IHubManager hubManager;
+        private readonly IHubDownstream hubDownstream;
 
-        public HubMessenger(IHubManager hubManager)
+        public HubMessenger(IHubDownstream hubDownstream)
         {
-            this.hubManager = hubManager;
+            this.hubDownstream = hubDownstream;
         }
 
         public void SendWorldMessage(string connectionId, Guid worldId)
         {
-            hubManager.Send(connectionId, new Dictionary<string, object>
+            hubDownstream.Send(connectionId, new Dictionary<string, object>
             {
                 { "message", "World" },
                 { "id", worldId }
@@ -33,12 +33,12 @@ namespace AutomationNodes.Core
         public void SendCreationMessage(string connectionId, Dictionary<string, object> creationMessage)
         {
             creationMessage["message"] = "Create";
-            hubManager.Send(connectionId, creationMessage);
+            hubDownstream.Send(connectionId, creationMessage);
         }
 
         public void SendSetPropertyMessage(string connectionId, Guid nodeId, string propertyName, string propertyValue)
         {
-            hubManager.Send(connectionId, new Dictionary<string, object>
+            hubDownstream.Send(connectionId, new Dictionary<string, object>
             {
                     { "message", "SetProperty" },
                     { "id", nodeId },
@@ -49,7 +49,7 @@ namespace AutomationNodes.Core
 
         public void SendTransitionMessage(string connectionId, Guid nodeId, Dictionary<string, string> transitionProperties, TimeSpan duration, bool destroyAfter)
         {
-            hubManager.Send(connectionId, new Dictionary<string, object>
+            hubDownstream.Send(connectionId, new Dictionary<string, object>
             {
                     { "message", "SetTransition" },
                     { "id", nodeId },
@@ -61,7 +61,7 @@ namespace AutomationNodes.Core
 
         public void SendAddKeyframeMessage(string connectionId, Dictionary<string, string> keyframeProperties, string keyframeName, string keyframePercent)
         {
-            hubManager.Send(connectionId, new Dictionary<string, object>
+            hubDownstream.Send(connectionId, new Dictionary<string, object>
             {
                 { "message", "AddKeyframe" },
                 { "properties", keyframeProperties },
@@ -69,6 +69,5 @@ namespace AutomationNodes.Core
                 { "keyframepercent", keyframePercent }
             });
         }
-
     }
 }

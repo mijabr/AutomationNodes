@@ -19,14 +19,14 @@ namespace AutomationNodes.Core
     public class NodeCommander : INodeCommander
     {
         private readonly IServiceProvider serviceProvider;
-        private readonly IHubManager hubManager;
+        private readonly IHubDownstream hubDownstream;
 
         public NodeCommander(
             IServiceProvider serviceProvider,
-            IHubManager hubManager)
+            IHubDownstream hubDownstream)
         {
             this.serviceProvider = serviceProvider;
-            this.hubManager = hubManager;
+            this.hubDownstream = hubDownstream;
         }
 
         public T CreateNode<T>(string connectionId, params object[] parameters) where T : INode
@@ -53,7 +53,7 @@ namespace AutomationNodes.Core
         {
             var world = (T)ConstructNode(typeof(T), connectionId, null);
 
-            hubManager.Send(connectionId, new Dictionary<string, object>
+            hubDownstream.Send(connectionId, new Dictionary<string, object>
             {
                 { "message", "World" },
                 { "id", world.Id }
@@ -68,7 +68,7 @@ namespace AutomationNodes.Core
         {
             var node = ConstructNode(type, connectionId, parent);
             node.OnCreate(parameters);
-            hubManager.Send(node.ConnectionId, node.CreationMessage());
+            hubDownstream.Send(node.ConnectionId, node.CreationMessage());
             node.OnCreated(Clients.All, parameters);
 
             return node;
@@ -88,7 +88,7 @@ namespace AutomationNodes.Core
 
         public void SetProperty(INode node, string propertyName, string propertyValue)
         {
-            hubManager.Send(node.ConnectionId, new Dictionary<string, object>
+            hubDownstream.Send(node.ConnectionId, new Dictionary<string, object>
             {
                 { "message", "SetProperty" },
                 { "id", node.Id },
@@ -107,7 +107,7 @@ namespace AutomationNodes.Core
 
         public void SetTransition(INode node, Dictionary<string, string> transitionProperties, TimeSpan duration, bool destroyAfter = false)
         {
-            hubManager.Send(node.ConnectionId, new Dictionary<string, object>
+            hubDownstream.Send(node.ConnectionId, new Dictionary<string, object>
             {
                 { "message", "SetTransition" },
                 { "id", node.Id },
@@ -119,7 +119,7 @@ namespace AutomationNodes.Core
 
         public void AddKeyframe(string connectionId, Dictionary<string, string> keyframeProperties, string keyframeName, string keyframePercent)
         {
-            hubManager.Send(connectionId, new Dictionary<string, object>
+            hubDownstream.Send(connectionId, new Dictionary<string, object>
             {
                 { "message", "AddKeyframe" },
                 { "properties", keyframeProperties },
